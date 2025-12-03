@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
-import { signOut } from "@/lib/auth";
 
 const routes = [
     {
@@ -113,7 +112,14 @@ export function Sidebar() {
                 <Button
                     variant="ghost"
                     className="w-full justify-start text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                    onClick={() => signOut()}
+                    onClick={async () => {
+                        try {
+                            await fetch("/api/auth/logout", { method: "POST" });
+                            window.location.href = "/login";
+                        } catch (error) {
+                            console.error("Logout failed:", error);
+                        }
+                    }}
                 >
                     <LogOut className="h-5 w-5 mr-3" />
                     Logout
