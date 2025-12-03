@@ -1,11 +1,12 @@
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import chromium from "@sparticuz/chromium-min";
 
 export async function generatePdf(html: string): Promise<Buffer> {
   let browser;
   try {
     const isLocal =
-      process.env.NODE_ENV === "development" || !process.env.AWS_REGION;
+      process.env.NODE_ENV === "development" ||
+      process.env.VERCEL_ENV === undefined;
 
     if (isLocal) {
       // Local development: Use full puppeteer
@@ -15,12 +16,13 @@ export async function generatePdf(html: string): Promise<Buffer> {
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
     } else {
-      // Production (Vercel): Use @sparticuz/chromium
+      // Production (Vercel): Use @sparticuz/chromium-min
       browser = await puppeteer.launch({
-        args: (chromium as any).args,
-        defaultViewport: (chromium as any).defaultViewport,
-        executablePath: await (chromium as any).executablePath(),
-        headless: (chromium as any).headless,
+        args: chromium.args,
+        executablePath: await chromium.executablePath(
+          "https://github.com/Sparticuz/chromium/releases/download/v119.0.2/chromium-v119.0.2-pack.tar"
+        ),
+        headless: true,
       });
     }
 
