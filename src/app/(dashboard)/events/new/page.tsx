@@ -97,7 +97,8 @@ export default function NewEventPage() {
     const [countdown, setCountdown] = useState(3);
 
     // Master Data
-    const [availableHalls, setAvailableHalls] = useState<string[]>(["1st Floor (Gents Sehan)", "2nd Floor", "Main Hall"]);
+    // Master Data - fetched from settings
+    const [availableHalls, setAvailableHalls] = useState<string[]>([]);
     const [availableCaterers, setAvailableCaterers] = useState<any[]>([]);
 
     useEffect(() => {
@@ -106,8 +107,11 @@ export default function NewEventPage() {
                 const res = await fetch("/api/settings/master-data");
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.halls && data.halls.length > 0) setAvailableHalls(data.halls);
+                    console.log("Master data fetched:", data); // Debug log
+                    if (data.halls) setAvailableHalls(data.halls);
                     if (data.caterers) setAvailableCaterers(data.caterers);
+                } else {
+                    console.error("Failed to fetch master data:", res.status);
                 }
             } catch (error) {
                 console.error("Failed to fetch master data", error);
