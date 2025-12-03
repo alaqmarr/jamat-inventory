@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "User Management",
+    description: "Manage system users and roles. Create, edit, and delete users with role-based access control (ADMIN, MANAGER, VIEWER).",
+};
+
 "use client";
 
 import { useEffect, useState } from "react";

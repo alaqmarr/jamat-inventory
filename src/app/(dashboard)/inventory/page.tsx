@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Inventory Management",
+    description: "Manage your inventory items. Add, edit, delete items and track real-time stock levels with category-based organization.",
+};
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";

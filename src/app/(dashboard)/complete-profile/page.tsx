@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Complete Profile",
+    description: "Complete your user profile by adding email and mobile number for full system access.",
+};
+
 "use client";
 
 import { useState } from "react";

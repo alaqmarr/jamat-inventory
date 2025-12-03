@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Dashboard",
+    description: "Overview of your Jamaat Inventory System. View key metrics, recent events, and system status at a glance.",
+};
+
 "use client";
 
 import { useState } from "react";

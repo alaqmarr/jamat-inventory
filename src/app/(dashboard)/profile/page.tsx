@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "My Profile",
+    description: "Manage your user profile and account settings. Update personal information and change password with OTP verification.",
+};
+
 "use client";
 
 import { useState, useEffect } from "react";

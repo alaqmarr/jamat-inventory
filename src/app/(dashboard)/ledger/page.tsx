@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Transaction Ledger",
+    description: "Complete audit trail of all inventory transactions. Track issues, returns, and losses across all events with detailed logging.",
+};
+
 "use client";
 
 import { useEffect, useState } from "react";

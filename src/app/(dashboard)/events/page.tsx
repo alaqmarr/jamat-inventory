@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "All Events",
+    description: "Browse and manage all events. View upcoming and past events with complete details and inventory allocation.",
+};
+
 "use client";
 
 import { useEffect, useState } from "react";
