@@ -21,10 +21,10 @@ export async function GET(req: Request) {
       // I'll try to query by range for the given date.
       const targetDate = new Date(date);
       const startOfDay = new Date(
-        targetDate.setHours(0, 0, 0, 0)
+        targetDate.setHours(0, 0, 0, 0),
       ).toISOString();
       const endOfDay = new Date(
-        targetDate.setHours(23, 59, 59, 999)
+        targetDate.setHours(23, 59, 59, 999),
       ).toISOString();
 
       query = query
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
     console.error("Error fetching events:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -71,6 +71,10 @@ export async function POST(req: Request) {
       thaalForDevri,
       paat,
       masjidLight,
+      acStartTime,
+      partyTime,
+      decorations,
+      gasCount,
       menu,
     } = body;
 
@@ -78,7 +82,7 @@ export async function POST(req: Request) {
     if (!mobile || !name || !occasionDate || !description) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -107,6 +111,10 @@ export async function POST(req: Request) {
       thaalForDevri,
       paat,
       masjidLight,
+      acStartTime,
+      partyTime,
+      decorations,
+      gasCount,
       menu,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -142,7 +150,7 @@ export async function POST(req: Request) {
               {
                 filename: `Event_${name.replace(
                   /\s+/g,
-                  "_"
+                  "_",
                 )}_${occasionDate}.pdf`,
                 content: pdfBuffer,
               },
@@ -192,7 +200,7 @@ export async function POST(req: Request) {
     console.error("Error creating event:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -23,6 +23,13 @@ import {
     SheetClose,
 } from "@/components/ui/sheet";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -197,65 +204,86 @@ export default function InventoryPage() {
 
                         <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
                             <SheetTrigger asChild>
-                                <Button className="h-10 bg-slate-900 hover:bg-slate-800">
+                                <Button className="h-10 bg-slate-900 hover:bg-slate-800 shadow-md transition-all hover:shadow-lg">
                                     <Plus className="mr-2 h-4 w-4" /> Add Item
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent>
-                                <SheetHeader>
-                                    <SheetTitle>Add New Item</SheetTitle>
+                            <SheetContent className="sm:max-w-md w-full">
+                                <SheetHeader className="mb-6">
+                                    <SheetTitle className="text-xl">Add New Item</SheetTitle>
                                     <SheetDescription>
-                                        Add a new item to your inventory. Click save when you're done.
+                                        Add a new item to the inventory.
                                     </SheetDescription>
                                 </SheetHeader>
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="name">Item Name</Label>
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name" className="text-sm font-medium">Item Name</Label>
                                         <Input
                                             id="name"
                                             value={newItem.name}
                                             onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                                             placeholder="e.g. Dinner Plate"
+                                            className="bg-slate-50 focus:bg-white transition-colors"
                                         />
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="category">Category</Label>
-                                        <Input
-                                            id="category"
+                                    <div className="space-y-2">
+                                        <Label htmlFor="category" className="text-sm font-medium">Category</Label>
+                                        <Select
                                             value={newItem.category}
-                                            onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                                            placeholder="e.g. Crockery"
-                                        />
+                                            onValueChange={(val) => setNewItem({ ...newItem, category: val })}
+                                        >
+                                            <SelectTrigger className="bg-slate-50 focus:bg-white transition-colors">
+                                                <SelectValue placeholder="Select or type category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Utensils">Utensils</SelectItem>
+                                                <SelectItem value="Furniture">Furniture</SelectItem>
+                                                <SelectItem value="Electronics">Electronics</SelectItem>
+                                                <SelectItem value="General">General</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {!["Utensils", "Furniture", "Electronics", "General"].includes(newItem.category) && newItem.category && (
+                                            <div className="text-xs text-slate-500 mt-1">Custom category: {newItem.category}</div>
+                                        )}
+                                        {/* Allow custom input if needed, but select is cleaner for now. */}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="quantity">Total Quantity</Label>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="quantity" className="text-sm font-medium">Total Quantity</Label>
                                             <Input
                                                 id="quantity"
                                                 type="number"
                                                 value={newItem.quantity}
                                                 onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
                                                 placeholder="0"
+                                                className="bg-slate-50 focus:bg-white transition-colors"
                                             />
                                         </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="unit">Unit</Label>
-                                            <Input
-                                                id="unit"
+                                        <div className="space-y-2">
+                                            <Label htmlFor="unit" className="text-sm font-medium">Unit</Label>
+                                            <Select
                                                 value={newItem.unit}
-                                                onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                                                placeholder="pieces"
-                                            />
+                                                onValueChange={(val) => setNewItem({ ...newItem, unit: val })}
+                                            >
+                                                <SelectTrigger className="bg-slate-50 focus:bg-white transition-colors">
+                                                    <SelectValue placeholder="Select unit" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="pieces">Pieces</SelectItem>
+                                                    <SelectItem value="sets">Sets</SelectItem>
+                                                    <SelectItem value="kg">Kg</SelectItem>
+                                                    <SelectItem value="liters">Liters</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
                                 </div>
-                                <SheetFooter>
+                                <SheetFooter className="mt-8">
                                     <SheetClose asChild>
-                                        <Button variant="outline">Cancel</Button>
+                                        <Button variant="outline" className="w-full sm:w-auto">Cancel</Button>
                                     </SheetClose>
-                                    <Button onClick={handleAddItem} disabled={isAdding}>
-                                        {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Save Item
+                                    <Button onClick={handleAddItem} disabled={isAdding} className="bg-slate-900 hover:bg-slate-800 w-full sm:w-auto">
+                                        {isAdding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Item"}
                                     </Button>
                                 </SheetFooter>
                             </SheetContent>

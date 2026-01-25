@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Loader2, Search, Filter, ArrowDownUp, Package, User, Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -68,12 +69,46 @@ export default function LedgerPage() {
         setFilteredLogs(result);
     }, [searchQuery, actionFilter, logs]);
 
+
     const getActionBadge = (action: string) => {
         if (action.includes("REMOVED") || action === "ISSUE") return <Badge variant="destructive">Issue</Badge>;
         if (action.includes("RETURNED") || action === "RETURN") return <Badge variant="default" className="bg-green-600 hover:bg-green-700">Return</Badge>;
         if (action.includes("CREATED")) return <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">Create</Badge>;
         if (action.includes("UPDATED")) return <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50">Update</Badge>;
         return <Badge variant="secondary">{action}</Badge>;
+    };
+
+    const renderDetails = (details: any) => {
+        if (!details) return <span className="text-slate-400">-</span>;
+
+        // Inventory actions
+        if (details.itemName && details.quantity) {
+            const isIssue = details.action === "ISSUE" || details.action?.includes("REMOVED");
+            return (
+                <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-slate-400" />
+                    <span>
+                        <span className={cn("font-bold", isIssue ? "text-red-600" : "text-green-600")}>
+                            {details.quantity}
+                        </span> {details.itemName}
+                        {details.eventName && <span className="text-slate-400 font-normal ml-1">for {details.eventName}</span>}
+                    </span>
+                </div>
+            );
+        }
+
+        // Event actions
+        if (details.eventName) {
+            return (
+                <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-slate-400" />
+                    <span>Event: <strong>{details.eventName}</strong></span>
+                </div>
+            );
+        }
+
+        // Fallback
+        return <code className="text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-600">{JSON.stringify(details).substring(0, 50)}{JSON.stringify(details).length > 50 ? "..." : ""}</code>;
     };
 
     if (isLoading) {
@@ -145,13 +180,7 @@ export default function LedgerPage() {
                                     </TableCell>
                                     <TableCell>{getActionBadge(log.action)}</TableCell>
                                     <TableCell className="text-sm">
-                                        {log.details?.itemName && (
-                                            <span className="font-medium">{log.details.quantity} x {log.details.itemName}</span>
-                                        )}
-                                        {log.details?.eventName && (
-                                            <span className="text-slate-500 ml-2">for {log.details.eventName}</span>
-                                        )}
-                                        {!log.details?.itemName && JSON.stringify(log.details)}
+                                        {renderDetails(log.details)}
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -184,16 +213,7 @@ export default function LedgerPage() {
                                     {getActionBadge(log.action)}
                                 </div>
                                 <div className="bg-slate-50 p-3 rounded text-sm">
-                                    {log.details?.itemName ? (
-                                        <div className="flex items-center gap-2">
-                                            <Package className="h-4 w-4 text-slate-400" />
-                                            <span>
-                                                <span className="font-bold">{log.details.quantity}</span> {log.details.itemName}
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-slate-600">{JSON.stringify(log.details)}</span>
-                                    )}
+                                    {renderDetails(log.details)}
                                 </div>
                             </CardContent>
                         </Card>

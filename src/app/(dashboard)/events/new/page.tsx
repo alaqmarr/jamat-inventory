@@ -75,6 +75,12 @@ const formSchema = z.object({
     paat: z.boolean().default(false),
     masjidLight: z.boolean().default(false),
     menu: z.string().default(""),
+
+    // Step 4: Add-ons
+    acStartTime: z.string().optional(),
+    partyTime: z.string().optional(),
+    decorations: z.boolean().default(false),
+    gasCount: z.coerce.number().min(0).default(0),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -83,6 +89,8 @@ const steps = [
     { id: 1, title: "Basic Details", icon: User },
     { id: 2, title: "Venue & Caterer", icon: MapPin },
     { id: 3, title: "Essentials & Menu", icon: Utensils },
+    { id: 4, title: "Add-ons", icon: Check },
+    { id: 5, title: "Review", icon: CheckCircle2 },
 ];
 
 export default function NewEventPage() {
@@ -144,8 +152,14 @@ export default function NewEventPage() {
             paat: false,
             masjidLight: false,
             menu: "",
+            acStartTime: "",
+            partyTime: "",
+            decorations: false,
+            gasCount: 0,
         },
     });
+
+    const formValues = form.getValues();
 
     // Mobile lookup
     const handleMobileBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
@@ -172,6 +186,10 @@ export default function NewEventPage() {
             fieldsToValidate = ["mobile", "name", "email", "occasionDate", "occasionTime", "description"];
         } else if (step === 2) {
             fieldsToValidate = ["hall", "catererName", "catererPhone"];
+        } else if (step === 3) {
+            fieldsToValidate = ["thaalCount", "sarkariThaalSet", "extraChilamchiLota", "tablesAndChairs", "menu"];
+        } else if (step === 4) {
+            fieldsToValidate = ["acStartTime", "partyTime", "decorations", "gasCount"];
         }
 
         const isValid = await form.trigger(fieldsToValidate);
@@ -217,18 +235,11 @@ export default function NewEventPage() {
             }
 
             if (conflictData.conflictType === "soft") {
-                // For soft conflicts, we might need a way to ask inside the flow.
-                // But since we are already in a "Creating" flow, let's just show the error and ask user to retry if they really want to force it?
-                // Or better, we should have checked this BEFORE the confirmation dialog.
-                // For now, let's treat it as an error the user needs to acknowledge.
-                // Ideally, we'd move conflict check to before the "Confirm" dialog.
-                // But to keep it simple as per request:
                 const confirmed = window.confirm(`WARNING: ${conflictData.conflictMessage}\n\nDo you want to proceed despite this conflict?`);
                 if (!confirmed) {
                     setStatusOpen(false);
                     return;
                 }
-                // If confirmed, continue
             }
 
             // 2. Create Event
@@ -279,7 +290,7 @@ export default function NewEventPage() {
                 <div className="mb-8">
                     <div className="flex justify-between items-center relative">
                         <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-slate-200 -z-10 rounded-full"></div>
-                        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-amber-500 -z-10 rounded-full transition-all duration-500" style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
+                        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-amber-500 -z-10 rounded-full transition-all duration-500" style={{ width: `${((step - 1) / 4) * 100}%` }}></div>
 
                         {steps.map((s) => (
                             <div key={s.id} className="flex flex-col items-center bg-slate-50 px-2">
@@ -290,7 +301,7 @@ export default function NewEventPage() {
                                     {step > s.id ? <Check className="w-6 h-6" /> : <s.icon className="w-5 h-5" />}
                                 </div>
                                 <span className={cn(
-                                    "text-xs font-medium mt-2 transition-colors duration-300",
+                                    "text-xs font-medium mt-2 transition-colors duration-300 hidden md:block",
                                     step >= s.id ? "text-slate-900" : "text-slate-400"
                                 )}>{s.title}</span>
                             </div>
@@ -346,7 +357,7 @@ export default function NewEventPage() {
                                                             </FormControl>
                                                         </PopoverTrigger>
                                                         <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date()} initialFocus />
+                                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
                                                         </PopoverContent>
                                                     </Popover>
                                                     <FormMessage />
@@ -513,19 +524,198 @@ export default function NewEventPage() {
                                     </div>
                                 )}
 
+                                {/* Step 4: Add-ons */}
+                                {step === 4 && (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <FormField control={form.control} name="acStartTime" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>AC Start Time (Optional)</FormLabel>
+                                                    <FormControl><Input type="time" {...field} className="h-12" /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="partyTime" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Party Time (Optional)</FormLabel>
+                                                    <FormControl><Input type="time" {...field} className="h-12" /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                        </div>
+
+                                        <FormField control={form.control} name="decorations" render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-xl border p-4 bg-white">
+                                                <FormControl>
+                                                    <Checkbox checked={field.value as boolean} onCheckedChange={field.onChange} />
+                                                </FormControl>
+                                                <FormLabel className="font-medium cursor-pointer flex-1 text-slate-900">Decorations</FormLabel>
+                                            </FormItem>
+                                        )} />
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <FormField control={form.control} name="gasCount" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Gas Count</FormLabel>
+                                                    <FormControl><Input type="number" {...field} className="h-12" /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 5: Review */}
+                                {step === 5 && (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+
+                                        {/* Booker & Event Info */}
+                                        <div className="bg-slate-50 rounded-lg p-6 space-y-4 border border-slate-100">
+                                            <h3 className="font-semibold text-lg border-b pb-2 mb-4">Event & Contact Details</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                                                <div>
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide">Booker Name</p>
+                                                    <p className="font-medium text-base">{formValues.name}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide">Mobile</p>
+                                                    <p className="font-medium text-base">{formValues.mobile}</p>
+                                                </div>
+                                                {formValues.email && (
+                                                    <div className="col-span-2">
+                                                        <p className="text-slate-500 text-xs uppercase tracking-wide">Email</p>
+                                                        <p className="font-medium text-base">{formValues.email}</p>
+                                                    </div>
+                                                )}
+                                                <div className="col-span-2">
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide">Occasion / Description</p>
+                                                    <p className="font-medium text-base">{formValues.description}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide">Date</p>
+                                                    <p className="font-medium text-base">{formValues.occasionDate ? format(formValues.occasionDate, "PPP") : "-"}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide">Time</p>
+                                                    <p className="font-medium text-base">{formValues.occasionTime}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Venue & Caterer */}
+                                        <div className="bg-slate-50 rounded-lg p-6 space-y-4 border border-slate-100">
+                                            <h3 className="font-semibold text-lg border-b pb-2 mb-4">Venue & Catering</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                                                <div className="col-span-2">
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide">Halls Selected</p>
+                                                    <p className="font-medium text-base">
+                                                        {Array.isArray(formValues.hall) ? formValues.hall.join(", ") : formValues.hall}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide">Caterer Name</p>
+                                                    <p className="font-medium text-base">{formValues.catererName || "-"}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide">Caterer Phone</p>
+                                                    <p className="font-medium text-base">{formValues.catererPhone || "-"}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Essentials & Requirements */}
+                                        <div className="bg-slate-50 rounded-lg p-6 space-y-4 border border-slate-100">
+                                            <h3 className="font-semibold text-lg border-b pb-2 mb-4">Requirements & Facilities</h3>
+
+                                            {/* Counts */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-6">
+                                                <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                                    <p className="text-slate-500 text-xs uppercase">Thaals</p>
+                                                    <p className="font-bold text-xl text-amber-600">{formValues.thaalCount}</p>
+                                                </div>
+                                                <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                                    <p className="text-slate-500 text-xs uppercase">Sarkari Sets</p>
+                                                    <p className="font-bold text-xl text-amber-600">{formValues.sarkariThaalSet}</p>
+                                                </div>
+                                                <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                                    <p className="text-slate-500 text-xs uppercase">Ex. Chilamchi</p>
+                                                    <p className="font-bold text-xl text-amber-600">{formValues.extraChilamchiLota}</p>
+                                                </div>
+                                                <div className="bg-white p-3 rounded-lg border shadow-sm">
+                                                    <p className="text-slate-500 text-xs uppercase">Tables</p>
+                                                    <p className="font-bold text-xl text-amber-600">{formValues.tablesAndChairs}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Checkbox Extras */}
+                                            <div className="mb-6">
+                                                <p className="text-slate-500 text-xs uppercase tracking-wide mb-3">Facility Requirements</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {formValues.bhaiSaabIzzan && <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100">Bhai Saab Izzan</span>}
+                                                    {formValues.benSaabIzzan && <span className="text-xs font-medium bg-pink-50 text-pink-700 px-2 py-1 rounded border border-pink-100">Ben Saab Izzan</span>}
+                                                    {formValues.mic && <span className="text-xs font-medium bg-slate-100 text-slate-700 px-2 py-1 rounded border border-slate-200">Microphone</span>}
+                                                    {formValues.crockeryRequired && <span className="text-xs font-medium bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-100">Crockery</span>}
+                                                    {formValues.thaalForDevri && <span className="text-xs font-medium bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100">Thaal for Devri</span>}
+                                                    {formValues.paat && <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-100">PAAT</span>}
+                                                    {formValues.masjidLight && <span className="text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-1 rounded border border-yellow-100">Masjid Light</span>}
+
+                                                    {!formValues.bhaiSaabIzzan && !formValues.benSaabIzzan && !formValues.mic && !formValues.crockeryRequired && !formValues.thaalForDevri && !formValues.paat && !formValues.masjidLight && (
+                                                        <span className="text-sm text-slate-400 italic">No special facilities selected</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Add-ons Section */}
+                                            <div>
+                                                <p className="text-slate-500 text-xs uppercase tracking-wide mb-3">Add-ons</p>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-white p-4 rounded-lg border">
+                                                    <div>
+                                                        <p className="text-slate-500 text-xs">AC Start Time</p>
+                                                        <p className="font-medium">{formValues.acStartTime || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-slate-500 text-xs">Party Time</p>
+                                                        <p className="font-medium">{formValues.partyTime || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-slate-500 text-xs">Gas Count</p>
+                                                        <p className="font-medium">{formValues.gasCount}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-slate-500 text-xs">Decorations</p>
+                                                        <p className={cn("font-medium", formValues.decorations ? "text-green-600" : "text-slate-400")}>
+                                                            {formValues.decorations ? "Yes" : "No"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Menu */}
+                                            {formValues.menu && (
+                                                <div className="mt-6 pt-4 border-t border-slate-100">
+                                                    <p className="text-slate-500 text-xs uppercase tracking-wide mb-2">Menu</p>
+                                                    <div className="bg-slate-50 p-3 rounded text-sm text-slate-700 whitespace-pre-wrap font-mono">
+                                                        {formValues.menu}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Navigation Buttons */}
                                 <div className="flex justify-between pt-6 border-t border-slate-100 mt-8">
                                     <Button type="button" variant="outline" onClick={prevStep} disabled={step === 1} className="h-12 px-6">
                                         <ChevronLeft className="mr-2 h-4 w-4" /> Back
                                     </Button>
 
-                                    {step < 3 ? (
+                                    {step < 5 ? (
                                         <Button type="button" onClick={nextStep} className="h-12 px-6 bg-amber-600 hover:bg-amber-700">
-                                            Next Step <ChevronRight className="ml-2 h-4 w-4" />
+                                            {step === 4 ? "Review Details" : "Next Step"} <ChevronRight className="ml-2 h-4 w-4" />
                                         </Button>
                                     ) : (
                                         <Button type="button" onClick={() => setIsConfirmOpen(true)} className="h-12 px-8 bg-green-600 hover:bg-green-700 text-lg shadow-lg hover:shadow-xl transition-all">
-                                            Confirm Booking
+                                            Confirm & Booking
                                         </Button>
                                     )}
                                 </div>

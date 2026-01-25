@@ -200,6 +200,88 @@ export default function EventPrintPage() {
                         </div>
                     </div>
 
+                    {/* Section: Add-ons & Timings (Added) */}
+                    <div className="grid grid-cols-4 gap-4 mb-8 p-4 bg-slate-50 border border-slate-100 rounded-lg print:p-2 print:mb-4">
+                        <div className="text-center border-r border-slate-200 last:border-0">
+                            <label className="text-xs text-slate-500 uppercase font-semibold block mb-1">AC Start</label>
+                            <p className="font-bold">{event.acStartTime || "-"}</p>
+                        </div>
+                        <div className="text-center border-r border-slate-200 last:border-0">
+                            <label className="text-xs text-slate-500 uppercase font-semibold block mb-1">Party Time</label>
+                            <p className="font-bold">{event.partyTime || "-"}</p>
+                        </div>
+                        <div className="text-center border-r border-slate-200 last:border-0">
+                            <label className="text-xs text-slate-500 uppercase font-semibold block mb-1">Gas Count</label>
+                            <p className="font-bold">{event.gasCount}</p>
+                        </div>
+                        <div className="text-center border-r border-slate-200 last:border-0">
+                            <label className="text-xs text-slate-500 uppercase font-semibold block mb-1">Decorations</label>
+                            <p className={event.decorations ? "font-bold text-green-600" : "font-medium"}>
+                                {event.decorations ? "Yes" : "No"}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Section 4: Lagat Details (Manual Entry) - Dynamic */}
+                    <div className="mb-8 print:mb-4">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider border-b pb-1 mb-4 print:mb-2">Lagat - Details</h3>
+                        <div className="flex gap-4">
+                            <div className="flex-grow">
+                                <table className="w-full text-sm border-collapse table-fixed">
+                                    <tbody>
+                                        {/* Dynamic Rows for Lagat */}
+                                        {(() => {
+                                            const halls = Array.isArray(event.hall) ? event.hall : [event.hall];
+                                            const leftItems = [
+                                                { label: "₹ Per Thaal", value: event.thaalCount },
+                                                { label: "₹ Sarkari", value: event.sarkariThaalSet },
+                                                { label: "₹ GAS", value: event.gasCount ? event.gasCount : "" }, // Show value if present
+                                                { label: "Kitchen :-", value: "" },
+                                                { label: "Decoration :-", value: event.decorations ? "Yes" : "No" },
+                                                { label: "Others :-", value: "" },
+                                            ];
+
+                                            const maxRows = Math.max(leftItems.length, halls.length);
+                                            const rows = [];
+
+                                            for (let i = 0; i < maxRows; i++) {
+                                                const left = leftItems[i] || { label: "", value: "" };
+                                                const hall = halls[i] || "";
+
+                                                rows.push(
+                                                    <tr key={i}>
+                                                        <td className="border border-slate-300 p-2 font-medium whitespace-nowrap w-[15%]">{left.label}</td>
+                                                        <td className="border border-slate-300 p-2 text-center w-[15%] font-mono">{left.value}</td>
+                                                        <td className="border border-slate-300 p-2 w-[15%]"></td>
+                                                        <td className="border border-slate-300 p-2 whitespace-nowrap w-[25%]">{hall}</td>
+                                                        <td className="border border-slate-300 p-2 w-[30%]"></td>
+                                                    </tr>
+                                                );
+                                            }
+
+                                            // Add Total Row
+                                            rows.push(
+                                                <tr key="total">
+                                                    <td className="border border-slate-300 p-2 font-medium whitespace-nowrap">Others :-</td>
+                                                    <td className="border border-slate-300 p-2"></td>
+                                                    <td className="border border-slate-300 p-2"></td>
+                                                    <td className="border border-slate-300 p-2 font-bold whitespace-nowrap bg-slate-50 print:bg-slate-100">TOTAL ₹ :-</td>
+                                                    <td className="border border-slate-300 p-2 font-bold bg-slate-50 print:bg-slate-100"></td>
+                                                </tr>
+                                            )
+
+                                            return rows;
+                                        })()}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="w-40 border-2 border-slate-800 p-2 flex flex-col items-center justify-center text-center shrink-0">
+                                <div className="font-bold text-xs mb-1 uppercase leading-tight">Returnable<br />Deposit</div>
+                                <div className="text-xl font-bold min-h-[40px] w-full border-t border-slate-200 mt-1 pt-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Footer / Signatures */}
                     <div className="mt-16 pt-8 border-t-2 border-slate-200 print:mt-8 print:pt-4">
                         <div className="grid grid-cols-2 gap-16 print:gap-8">

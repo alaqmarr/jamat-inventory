@@ -20,7 +20,7 @@ export async function generatePdf(html: string): Promise<Buffer> {
       browser = await puppeteer.launch({
         args: chromium.args,
         executablePath: await chromium.executablePath(
-          "https://github.com/Sparticuz/chromium/releases/download/v119.0.2/chromium-v119.0.2-pack.tar"
+          "https://github.com/Sparticuz/chromium/releases/download/v119.0.2/chromium-v119.0.2-pack.tar",
         ),
         headless: true,
       });
@@ -86,6 +86,7 @@ export const eventPdfTemplate = (event: any) => {
                 <div style="text-align: right;">
                     <div class="label">Mobile</div>
                     <div class="value">${event.mobile}</div>
+                    ${event.email ? `<div class="value" style="font-size: 10px; margin-top: 2px;">${event.email}</div>` : ""}
                 </div>
             </div>
         </div>
@@ -97,9 +98,27 @@ export const eventPdfTemplate = (event: any) => {
             </div>
             <div style="text-align: right;">
                 <div class="label">Date & Time</div>
-                <div class="value">${new Date(
-                  event.occasionDate
-                ).toDateString()} - ${event.occasionTime}</div>
+                <div class="value">${new Date(event.occasionDate).toDateString()} - ${event.occasionTime}</div>
+            </div>
+        </div>
+
+        <div class="section-title">ADD-ONS & TIMINGS</div>
+        <div class="requirements">
+            <div class="req-box">
+                <div class="label">AC Start</div>
+                <div class="value">${event.acStartTime || "-"}</div>
+            </div>
+            <div class="req-box">
+                <div class="label">Party Time</div>
+                <div class="value">${event.partyTime || "-"}</div>
+            </div>
+            <div class="req-box">
+                <div class="label">Gas Count</div>
+                <div class="value">${event.gasCount}</div>
+            </div>
+            <div class="req-box">
+                <div class="label">Decorations</div>
+                <div class="value">${event.decorations ? "Yes" : "No"}</div>
             </div>
         </div>
 
@@ -113,8 +132,8 @@ export const eventPdfTemplate = (event: any) => {
             <div style="text-align: right;">
                 <div class="label">Caterer</div>
                 <div class="value">${event.catererName} (${
-    event.catererPhone
-  })</div>
+                  event.catererPhone
+                })</div>
             </div>
         </div>
 
@@ -141,44 +160,44 @@ export const eventPdfTemplate = (event: any) => {
         <div class="checkboxes">
             <div class="checkbox-item">
                 <div class="box ${event.bhaiSaabIzzan ? "checked" : ""}">${
-    event.bhaiSaabIzzan ? "✓" : ""
-  }</div>
+                  event.bhaiSaabIzzan ? "✓" : ""
+                }</div>
                 <span>Bhai Saab Izzan</span>
             </div>
             <div class="checkbox-item">
                 <div class="box ${event.benSaabIzzan ? "checked" : ""}">${
-    event.benSaabIzzan ? "✓" : ""
-  }</div>
+                  event.benSaabIzzan ? "✓" : ""
+                }</div>
                 <span>Ben Saab Izzan</span>
             </div>
             <div class="checkbox-item">
                 <div class="box ${event.mic ? "checked" : ""}">${
-    event.mic ? "✓" : ""
-  }</div>
+                  event.mic ? "✓" : ""
+                }</div>
                 <span>Microphone</span>
             </div>
             <div class="checkbox-item">
                 <div class="box ${event.crockeryRequired ? "checked" : ""}">${
-    event.crockeryRequired ? "✓" : ""
-  }</div>
+                  event.crockeryRequired ? "✓" : ""
+                }</div>
                 <span>Crockery</span>
             </div>
             <div class="checkbox-item">
                 <div class="box ${event.thaalForDevri ? "checked" : ""}">${
-    event.thaalForDevri ? "✓" : ""
-  }</div>
+                  event.thaalForDevri ? "✓" : ""
+                }</div>
                 <span>Thaal for Devri</span>
             </div>
             <div class="checkbox-item">
                 <div class="box ${event.paat ? "checked" : ""}">${
-    event.paat ? "✓" : ""
-  }</div>
+                  event.paat ? "✓" : ""
+                }</div>
                 <span>PAAT</span>
             </div>
             <div class="checkbox-item">
                 <div class="box ${event.masjidLight ? "checked" : ""}">${
-    event.masjidLight ? "✓" : ""
-  }</div>
+                  event.masjidLight ? "✓" : ""
+                }</div>
                 <span>Masjid Light</span>
             </div>
         </div>
@@ -186,6 +205,100 @@ export const eventPdfTemplate = (event: any) => {
         <div class="section-title">Menu</div>
         <div class="menu">
             ${event.menu || "No menu specified."}
+        </div>
+
+        <div class="section-title" style="margin-top: 30px;">LAGAT - DETAILS</div>
+        <div style="display: flex; gap: 20px;">
+            <table style="border-collapse: collapse; flex: 2; font-size: 11px;">
+                <tr>
+                    <td style="border: 1px solid #333; padding: 6px 10px; width: 100px;">₹ Per Thaal</td>
+                    <td style="border: 1px solid #333; padding: 6px 10px; width: 50px; text-align: center;">${event.thaalCount || ""}</td>
+                    <td style="border: 1px solid #333; padding: 6px 10px; width: 80px;"></td>
+                    
+                    ${/* Dynamic Hall 1 */ ""}
+                    <td style="border: 1px solid #333; padding: 6px 10px; width: 100px;">
+                        ${Array.isArray(event.hall) && event.hall[0] ? event.hall[0] : typeof event.hall === "string" ? event.hall : ""}
+                    </td>
+                    <td style="border: 1px solid #333; padding: 6px 10px; width: 80px;"></td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #333; padding: 6px 10px;">₹ Sarkari</td>
+                    <td style="border: 1px solid #333; padding: 6px 10px; text-align: center;">${event.sarkariThaalSet || ""}</td>
+                    <td style="border: 1px solid #333; padding: 6px 10px;"></td>
+
+                    ${/* Dynamic Hall 2 */ ""}
+                     <td style="border: 1px solid #333; padding: 6px 10px; width: 100px;">
+                        ${Array.isArray(event.hall) && event.hall[1] ? event.hall[1] : ""}
+                    </td>
+                    <td style="border: 1px solid #333; padding: 6px 10px;"></td>
+                </tr>
+                
+                ${
+                  /* Loop for remaining halls if any, or just show rows. 
+                   Actually, let's just show rows for the halls we have. 
+                   If we have more than 2 halls, we need more rows.
+                   Use a cleaner approach: Create rows for Halls and fill the left side with standard items.
+                */ ""
+                }
+
+                ${(() => {
+                  const halls = Array.isArray(event.hall)
+                    ? event.hall
+                    : [event.hall];
+                  // Skip first 2 as they are handled above
+                  const remainingHalls = halls.slice(2);
+
+                  // Standard items for left side
+                  const leftItems = [
+                    {
+                      label: "₹ GAS",
+                      value: event.gasCount ? event.gasCount : "",
+                    },
+                    { label: "Kitchen :-", value: "" },
+                    {
+                      label: "Decoration :-",
+                      value: event.decorations ? "Yes" : "No",
+                    },
+                    { label: "Others :-", value: "" },
+                  ];
+
+                  let rows = "";
+
+                  // We need to iterate enough times to cover both lists
+                  const maxRows = Math.max(
+                    leftItems.length,
+                    remainingHalls.length,
+                  );
+
+                  for (let i = 0; i < maxRows; i++) {
+                    const left = leftItems[i] || { label: "", value: "" };
+                    const hall = remainingHalls[i] || "";
+
+                    rows += `
+                         <tr>
+                            <td style="border: 1px solid #333; padding: 6px 10px;">${left.label}</td>
+                            <td style="border: 1px solid #333; padding: 6px 10px; text-align: center;">${left.value}</td>
+                            <td style="border: 1px solid #333; padding: 6px 10px;"></td>
+                            <td style="border: 1px solid #333; padding: 6px 10px;">${hall}</td>
+                            <td style="border: 1px solid #333; padding: 6px 10px;"></td>
+                         </tr>
+                         `;
+                  }
+                  return rows;
+                })()}
+
+                <tr>
+                    <td style="border: 1px solid #333; padding: 6px 10px;"></td>
+                    <td style="border: 1px solid #333; padding: 6px 10px;"></td>
+                    <td style="border: 1px solid #333; padding: 6px 10px;"></td>
+                    <td style="border: 1px solid #333; padding: 6px 10px; font-weight: bold;">TOTAL ₹ :-</td>
+                    <td style="border: 1px solid #333; padding: 6px 10px;"></td>
+                </tr>
+            </table>
+            <div style="border: 2px solid #333; padding: 15px 20px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <div style="font-weight: bold; font-size: 12px; margin-bottom: 10px;">RETURNABLE<br/>DEPOSIT :-</div>
+                <div style="font-size: 16px; font-weight: bold; min-height: 30px;"></div>
+            </div>
         </div>
 
         <div class="footer">

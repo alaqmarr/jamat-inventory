@@ -77,7 +77,10 @@ export default function AddInventoryPage() {
 
     return (
         <div className="p-6 max-w-2xl mx-auto space-y-6">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Add Inventory</h1>
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" onClick={() => router.back()}>&larr; Back</Button>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Add Inventory</h1>
+            </div>
 
             <Card className="glass-card">
                 <CardHeader>

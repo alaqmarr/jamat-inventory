@@ -49,6 +49,12 @@ export interface Event {
   masjidLight: boolean;
   crockeryStatus?: "PENDING" | "NOT_REQUIRED" | "COMPLETED";
 
+  // Add-ons
+  acStartTime?: string;
+  partyTime?: string;
+  decorations?: boolean;
+  gasCount?: number;
+
   menu: string;
 
   createdAt: string;

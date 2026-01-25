@@ -39,6 +39,40 @@ export default function SystemLogsPage() {
         return () => clearInterval(interval);
     }, []);
 
+    const getActionBadge = (action: string) => {
+        if (action.includes("ERROR") || action.includes("FAIL")) return <Badge variant="destructive">{action}</Badge>;
+        if (action.includes("CREATE")) return <Badge className="bg-emerald-600 hover:bg-emerald-700">{action}</Badge>;
+        if (action.includes("UPDATE")) return <Badge className="bg-amber-600 hover:bg-amber-700">{action}</Badge>;
+        if (action.includes("DELETE")) return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700">{action}</Badge>;
+        return <Badge variant="outline" className="bg-slate-100">{action}</Badge>;
+    };
+
+    const renderDetails = (details: any) => {
+        if (!details) return <span className="text-slate-400">-</span>;
+
+        // Inventory actions
+        if (details.itemName && details.quantity) {
+            return <span>{details.quantity} x <strong>{details.itemName}</strong></span>;
+        }
+
+        // Event actions
+        if (details.eventName) {
+            return <span>Event: <strong>{details.eventName}</strong></span>;
+        }
+
+        // Generic field updates
+        if (details.field && (details.oldValue || details.newValue)) {
+            return (
+                <span className="text-xs">
+                    Changed <strong>{details.field}</strong> from <span className="line-through text-slate-400">{details.oldValue}</span> to <strong>{details.newValue}</strong>
+                </span>
+            );
+        }
+
+        // Fallback for complex objects but cleaner
+        return <code className="text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-600">{JSON.stringify(details).substring(0, 50)}{JSON.stringify(details).length > 50 ? "..." : ""}</code>;
+    };
+
     if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -67,9 +101,9 @@ export default function SystemLogsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Timestamp</TableHead>
-                                <TableHead>User</TableHead>
-                                <TableHead>Action</TableHead>
+                                <TableHead className="w-[200px]">Timestamp</TableHead>
+                                <TableHead className="w-[150px]">User</TableHead>
+                                <TableHead className="w-[150px]">Action</TableHead>
                                 <TableHead>Details</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -83,17 +117,15 @@ export default function SystemLogsPage() {
                             ) : (
                                 logs.map((log) => (
                                     <TableRow key={log.id}>
-                                        <TableCell className="whitespace-nowrap text-slate-500">
-                                            {format(new Date(log.timestamp), "PP pp")}
+                                        <TableCell className="text-slate-500 text-sm">
+                                            {format(new Date(log.timestamp), "PP p")}
                                         </TableCell>
                                         <TableCell className="font-medium">{log.userName}</TableCell>
                                         <TableCell>
-                                            <Badge variant="outline" className="bg-slate-100">
-                                                {log.action}
-                                            </Badge>
+                                            {getActionBadge(log.action)}
                                         </TableCell>
-                                        <TableCell className="font-mono text-xs text-slate-600">
-                                            {JSON.stringify(log.details)}
+                                        <TableCell className="text-sm">
+                                            {renderDetails(log.details)}
                                         </TableCell>
                                     </TableRow>
                                 ))
