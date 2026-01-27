@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Upload, MoreHorizontal, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -39,12 +40,12 @@ import { InventoryItem } from "@/types";
 import { InventoryStats } from "../inventory-stats";
 import { DataTable } from "@/components/ui/data-table-revamp";
 import { useCurrentRole } from "@/hooks/use-current-role";
-
 interface InventoryClientProps {
     initialItems: InventoryItem[];
 }
 
 export default function InventoryClient({ initialItems }: InventoryClientProps) {
+    const router = useRouter();
     const role = useCurrentRole();
     const canManage = role === "ADMIN" || role === "MANAGER";
     const [items, setItems] = useState<InventoryItem[]>(initialItems);
@@ -101,6 +102,20 @@ export default function InventoryClient({ initialItems }: InventoryClientProps) 
             toast.error("Failed to add item");
         } finally {
             setIsAdding(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this item?")) return;
+        try {
+            const res = await fetch(`/api/inventory/${id}`, {
+                method: "DELETE",
+            });
+            if (!res.ok) throw new Error("Failed to delete");
+            toast.success("Item deleted");
+            fetchInventory();
+        } catch (error) {
+            toast.error("Failed to delete item");
         }
     };
 
@@ -180,15 +195,18 @@ export default function InventoryClient({ initialItems }: InventoryClientProps) 
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => navigator.clipboard.writeText(item.name)}>
                             Copy Name
                         </DropdownMenuItem>
                         {canManage && (
                             <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Edit Item</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">Delete Item</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push(`/inventory/${item.id}/edit`)}>
+                                    Edit Item
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(item.id)}>
+                                    Delete Item
+                                </DropdownMenuItem>
                             </>
                         )}
                     </DropdownMenuContent>
