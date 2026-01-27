@@ -40,6 +40,7 @@ const PAGE_ACCESS: Record<string, PageAccess> = {
   "/settings/venues": { allowedRoles: ["ADMIN"] },
   "/settings/caterers": { allowedRoles: ["ADMIN"] },
   "/settings/data": { allowedRoles: ["ADMIN"] },
+  "/settings/email-test": { allowedRoles: ["ADMIN"] },
 
   // Profile - Everyone
   "/profile": { allowedRoles: ["ADMIN", "MANAGER", "STAFF", "WATCHER"] },

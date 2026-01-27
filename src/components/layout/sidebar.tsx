@@ -18,7 +18,8 @@ import {
     HelpCircle,
     LogOut,
     Grid,
-    AlertTriangle
+    AlertTriangle,
+    Mail
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
@@ -63,6 +64,7 @@ const routeGroups = [
             { label: "Export", icon: FileDown, href: "/settings/data/export" },
             { label: "Settings", icon: Settings, href: "/settings/config" },
             { label: "System Reset", icon: AlertTriangle, href: "/settings/data" },
+            { label: "Email Test", icon: Mail, href: "/settings/email-test" },
         ]
     }
 ];

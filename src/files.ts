@@ -26,6 +26,7 @@ export const APP_FILES = {
     "src/app/(dashboard)/settings/data/sync/page.tsx",
     "src/app/(dashboard)/settings/data/health/page.tsx",
     "src/app/(dashboard)/settings/data/reset/page.tsx",
+    "src/app/(dashboard)/settings/email-test/page.tsx",
     "src/app/(dashboard)/unauthorized/page.tsx",
     "src/app/(dashboard)/users/page.tsx",
   ],
@@ -57,6 +58,7 @@ export const APP_FILES = {
     "src/app/(dashboard)/settings/data/sync/client.tsx",
     "src/app/(dashboard)/settings/data/health/client.tsx",
     "src/app/(dashboard)/settings/data/reset/client.tsx",
+    "src/app/(dashboard)/settings/email-test/client.tsx",
     "src/app/(dashboard)/users/_components/users-client.tsx",
     "src/components/layout/sidebar.tsx",
     "src/components/rbac-wrapper.tsx",
@@ -65,6 +67,7 @@ export const APP_FILES = {
   lib: ["src/lib/pdf-generator.ts"],
   api: [
     "src/app/api/admin/export/route.ts",
+    "src/app/api/admin/email-test/route.ts",
     "src/app/api/admin/restore/route.ts",
     "src/app/api/sysmtem/reset/route.ts",
     "src/app/(dashboard)/events/[id]/_components/event-stepper.tsx",
