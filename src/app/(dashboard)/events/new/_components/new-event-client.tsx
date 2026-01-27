@@ -20,7 +20,7 @@ import {
     FileText,
     Sparkles
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -105,8 +105,12 @@ const steps = [
     { id: 5, title: "Confirmation", icon: CheckCircle2 },
 ];
 
+
 export default function NewEventPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const fromId = searchParams.get("fromId");
+
     const [step, setStep] = useState(1);
 
     // Confirmation & Status State
@@ -135,6 +139,60 @@ export default function NewEventPage() {
         };
         fetchMasterData();
     }, []);
+
+    // Clone Event Logic
+    useEffect(() => {
+        if (!fromId) return;
+
+        const fetchSourceEvent = async () => {
+            try {
+                toast.loading("Cloning event details...");
+                const res = await fetch(`/api/events/${fromId}`);
+                if (res.ok) {
+                    const event = await res.json();
+
+                    form.reset({
+                        mobile: event.mobile,
+                        name: event.name,
+                        email: event.email || "",
+                        occasionDate: new Date(), // Reset date
+                        occasionTime: "", // Reset time
+                        description: event.description,
+                        hall: Array.isArray(event.hall) ? event.hall : [event.hall],
+                        catererName: event.catererName,
+                        catererPhone: event.catererPhone,
+                        thaalCount: event.thaalCount,
+                        sarkariThaalSet: event.sarkariThaalSet,
+                        extraChilamchiLota: event.extraChilamchiLota,
+                        tablesAndChairs: event.tablesAndChairs,
+                        bhaiSaabIzzan: event.bhaiSaabIzzan || false,
+                        benSaabIzzan: event.benSaabIzzan || false,
+                        mic: event.mic || false,
+                        crockeryRequired: event.crockeryRequired || false,
+                        thaalForDevri: event.thaalForDevri || false,
+                        paat: event.paat || false,
+                        masjidLight: event.masjidLight || false,
+                        menu: event.menu || "",
+                        acStartTime: event.acStartTime || "",
+                        partyTime: event.partyTime || "",
+                        decorations: event.decorations || false,
+                        gasCount: event.gasCount || 0,
+                    });
+                    toast.dismiss();
+                    toast.success("Event details cloned! Please set a new date and time.");
+                } else {
+                    toast.dismiss();
+                    toast.error("Failed to load source event for cloning.");
+                }
+            } catch (error) {
+                console.error("Clone failed", error);
+                toast.dismiss();
+                toast.error("Error cloning event.");
+            }
+        };
+
+        fetchSourceEvent();
+    }, [fromId]);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,

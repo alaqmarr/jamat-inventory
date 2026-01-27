@@ -65,8 +65,10 @@ export const APP_FILES = {
   lib: ["src/lib/pdf-generator.ts"],
   api: [
     "src/app/api/admin/export/route.ts",
-    "src/app/api/admin/reset/route.ts",
     "src/app/api/admin/restore/route.ts",
+    "src/app/api/sysmtem/reset/route.ts",
+    "src/app/(dashboard)/events/[id]/_components/event-stepper.tsx",
+    "src/app/(dashboard)/events/[id]/_components/qr-dialog.tsx",
     "src/app/api/admin/sync/firestore-to-neon/route.ts",
     "src/app/api/admin/sync/neon-to-firestore/route.ts",
     "src/app/api/admin/sync/stats/route.ts",

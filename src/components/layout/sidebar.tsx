@@ -17,7 +17,8 @@ import {
     ScrollText,
     HelpCircle,
     LogOut,
-    Grid
+    Grid,
+    AlertTriangle
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
@@ -61,6 +62,7 @@ const routeGroups = [
             { label: "Sync", icon: RefreshCw, href: "/settings/data/sync" },
             { label: "Export", icon: FileDown, href: "/settings/data/export" },
             { label: "Settings", icon: Settings, href: "/settings/config" },
+            { label: "System Reset", icon: AlertTriangle, href: "/settings/data" },
         ]
     }
 ];

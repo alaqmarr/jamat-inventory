@@ -106,7 +106,7 @@ export default function DataManagementPageClient() {
             />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-8">
+                <TabsList className="grid w-full grid-cols-5 mb-8">
                     <TabsTrigger value="export">Export Data</TabsTrigger>
                     <TabsTrigger value="restore">Restore Backup</TabsTrigger>
                     <TabsTrigger value="sync">Sync Data</TabsTrigger>
@@ -244,9 +244,9 @@ export default function DataManagementPageClient() {
                                 <div>
                                     <h3 className="font-medium text-slate-900">Reset System Data</h3>
                                     <p className="text-sm text-slate-500 mt-1">
-                                        Permanently delete all events, inventory, logs, and other users.
+                                        Delete all events, logs, and transactions. Reset inventory quantities.
                                         <br />
-                                        <span className="font-bold">This action cannot be undone.</span>
+                                        <span className="font-bold text-slate-700">Master Data (Users, Items, Venues) will be preserved.</span>
                                     </p>
                                 </div>
                                 <ResetSystemButton />
@@ -394,21 +394,50 @@ function SyncStatsPanel({ onSync, isSyncing }: { onSync: (dir: "firestore-to-neo
 
 function ResetSystemButton() {
     const [isOpen, setIsOpen] = useState(false);
-    const [confirmText, setConfirmText] = useState("");
+    const [otp, setOtp] = useState("");
+    const [otpSent, setOtpSent] = useState(false);
+    const [loadingOtp, setLoadingOtp] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
 
+    const handleSendOtp = async () => {
+        setLoadingOtp(true);
+        try {
+            const res = await fetch("/api/auth/otp/send", { method: "POST" });
+            if (res.ok) {
+                toast.success("OTP sent to your email");
+                setOtpSent(true);
+            } else {
+                toast.error("Failed to send OTP");
+            }
+        } catch (error) {
+            toast.error("Error sending OTP");
+        } finally {
+            setLoadingOtp(false);
+        }
+    };
+
     const handleReset = async () => {
-        if (confirmText !== "DELETE") return;
+        if (!otp || otp.length < 6) {
+            toast.error("Please enter a valid 6-digit OTP");
+            return;
+        }
 
         setIsResetting(true);
         try {
-            const res = await fetch("/api/admin/reset", { method: "POST" });
+            const res = await fetch("/api/system/reset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ otp })
+            });
+
+            const data = await res.json();
+
             if (res.ok) {
                 toast.success("System reset successfully");
                 setIsOpen(false);
                 window.location.reload();
             } else {
-                throw new Error("Reset failed");
+                toast.error(data.error || "Reset failed");
             }
         } catch (error) {
             toast.error("Failed to reset system");
@@ -417,46 +446,77 @@ function ResetSystemButton() {
         }
     };
 
+    const resetState = (open: boolean) => {
+        setIsOpen(open);
+        if (!open) {
+            setOtp("");
+            setOtpSent(false);
+        }
+    };
+
     return (
-        <Drawer open={isOpen} onOpenChange={setIsOpen}>
+        <Drawer open={isOpen} onOpenChange={resetState}>
             <DrawerTrigger asChild>
                 <Button id="btn-data-reset" variant="destructive">Reset System</Button>
             </DrawerTrigger>
-            <DrawerContent className="px-4 pb-8">
+            <DrawerContent className="px-4 pb-8 max-w-lg mx-auto">
                 <DrawerHeader className="text-center pt-6">
                     <DrawerTitle className="text-xl font-bold text-red-600">Reset System Data</DrawerTitle>
                     <DrawerDescription className="text-slate-500 mt-2">
-                        This action will permanently delete all:
-                        <ul className="list-disc text-left pl-8 mt-2 mb-2 text-slate-600">
-                            <li>Events</li>
-                            <li>Inventory Items</li>
-                            <li>System Logs</li>
-                            <li>Users (except your account)</li>
-                        </ul>
-                        This action cannot be undone.
+                        This action will delete all <strong className="text-red-600">Events</strong>, <strong className="text-red-600">Logs</strong>, and transactions.
+                        <br />
+                        <strong className="text-emerald-600">Master Data (Users, Inventory Items, Venues) will be preserved.</strong>
                     </DrawerDescription>
                 </DrawerHeader>
-                <div className="py-4 px-4">
-                    <label className="text-sm font-medium text-slate-700 block mb-2">
-                        Type <span className="font-bold text-red-600">DELETE</span> to confirm:
-                    </label>
-                    <Input
-                        value={confirmText}
-                        onChange={(e) => setConfirmText(e.target.value)}
-                        placeholder="DELETE"
-                        className="border-red-200 focus-visible:ring-red-500"
-                    />
+
+                <div className="py-6 px-4 space-y-4">
+                    {!otpSent ? (
+                        <div className="text-center space-y-4">
+                            <p className="text-sm text-slate-600">
+                                To proceed, we need to verify your identity. <br />
+                                Please request an OTP to your registered email.
+                            </p>
+                            <Button
+                                onClick={handleSendOtp}
+                                disabled={loadingOtp}
+                                className="w-full bg-slate-900 text-white hover:bg-slate-800"
+                            >
+                                {loadingOtp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Send OTP Code"}
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="reset-otp">Enter OTP sent to your email</Label>
+                                <Input
+                                    id="reset-otp"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                                    placeholder="• • • • • •"
+                                    className="text-center text-2xl tracking-widest h-14 font-mono"
+                                    autoFocus
+                                />
+                                <p className="text-xs text-center text-slate-400">
+                                    Code expires in 10 minutes.
+                                    <button onClick={handleSendOtp} className="text-blue-600 hover:underline ml-1">Resend?</button>
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
+
                 <DrawerFooter className="flex flex-col gap-3">
-                    <Button
-                        id="btn-data-reset-confirm"
-                        variant="destructive"
-                        onClick={handleReset}
-                        disabled={confirmText !== "DELETE" || isResetting}
-                        className="w-full h-12 rounded-xl"
-                    >
-                        {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Permanently Delete Data"}
-                    </Button>
+                    {otpSent && (
+                        <Button
+                            id="btn-data-reset-confirm"
+                            variant="destructive"
+                            onClick={handleReset}
+                            disabled={!otp || otp.length < 6 || isResetting}
+                            className="w-full h-12 rounded-xl text-lg font-semibold"
+                        >
+                            {isResetting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Confirm System Reset"}
+                        </Button>
+                    )}
                     <DrawerClose asChild>
                         <Button variant="outline" className="w-full h-12 rounded-xl border-slate-300">
                             Cancel

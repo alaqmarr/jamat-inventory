@@ -1,19 +1,20 @@
-
 "use client";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, PackagePlus } from "lucide-react";
+import { Loader2, PackagePlus, Tag, Layers, Scale, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -65,8 +66,8 @@ export default function AddInventoryPageClient() {
                 throw new Error(data.error || "Failed to add item");
             }
 
-            toast.success("Item added successfully");
-            router.push("/"); // Redirect to dashboard or inventory list
+            toast.success(`${values.name} added to inventory`);
+            router.push("/inventory");
             router.refresh();
         } catch (error: any) {
             toast.error(error.message);
@@ -76,75 +77,95 @@ export default function AddInventoryPageClient() {
     };
 
     return (
-        <div className="p-6 max-w-2xl mx-auto space-y-6">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => router.back()}>&larr; Back</Button>
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Add Inventory</h1>
-            </div>
+        <div className="container mx-auto p-6 md:p-8 max-w-2xl space-y-8">
+            <PageHeader
+                title="Add Inventory"
+                description="Register new items to the global inventory system."
+                backUrl="/inventory"
+            />
 
-            <Card className="border-0 shadow-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <PackagePlus className="h-5 w-5 text-emerald-600" />
-                        New Item Details
-                    </CardTitle>
-                    <CardDescription>Add a new item to the global inventory.</CardDescription>
+            <Card className="border-0 shadow-md ring-1 ring-slate-900/5">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                            <PackagePlus className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-xl font-bold text-slate-800">New Item Details</CardTitle>
+                            <CardDescription>Enter the specifications below.</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6 md:p-8">
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <FormField
                                 control={form.control as any}
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Item Name</FormLabel>
-                                        <FormControl><Input placeholder="e.g., Large Thaal" {...field} /></FormControl>
+                                        <FormLabel className="text-slate-700 font-semibold">Item Name</FormLabel>
+                                        <FormControl>
+                                            <div className="relative group">
+                                                <Tag className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                                <Input className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all" placeholder="e.g. Large Thaal" {...field} />
+                                            </div>
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <div className="grid grid-cols-2 gap-4">
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField
                                     control={form.control as any}
                                     name="category"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Category</FormLabel>
+                                            <FormLabel className="text-slate-700 font-semibold">Category</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select category" />
-                                                    </SelectTrigger>
+                                                    <div className="relative group">
+                                                        <Layers className="absolute left-3 top-3 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 z-10" />
+                                                        <SelectTrigger className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white">
+                                                            <SelectValue placeholder="Select category" />
+                                                        </SelectTrigger>
+                                                    </div>
                                                 </FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="General">General</SelectItem>
                                                     <SelectItem value="Utensils">Utensils</SelectItem>
                                                     <SelectItem value="Furniture">Furniture</SelectItem>
                                                     <SelectItem value="Electronics">Electronics</SelectItem>
+                                                    <SelectItem value="Decor">Decor</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
+
                                 <FormField
                                     control={form.control as any}
                                     name="unit"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Unit</FormLabel>
+                                            <FormLabel className="text-slate-700 font-semibold">Unit</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select unit" />
-                                                    </SelectTrigger>
+                                                    <div className="relative group">
+                                                        <Scale className="absolute left-3 top-3 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 z-10" />
+                                                        <SelectTrigger className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white">
+                                                            <SelectValue placeholder="Select unit" />
+                                                        </SelectTrigger>
+                                                    </div>
                                                 </FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="pieces">Pieces</SelectItem>
                                                     <SelectItem value="sets">Sets</SelectItem>
-                                                    <SelectItem value="kg">Kg</SelectItem>
-                                                    <SelectItem value="liters">Liters</SelectItem>
+                                                    <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                                                    <SelectItem value="liters">Liters (l)</SelectItem>
+                                                    <SelectItem value="meters">Meters (m)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -152,27 +173,53 @@ export default function AddInventoryPageClient() {
                                     )}
                                 />
                             </div>
+
                             <FormField
                                 control={form.control as any}
                                 name="totalQuantity"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Total Quantity</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                placeholder="0"
-                                                {...field}
-                                                onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                                            />
-                                        </FormControl>
+                                        <FormLabel className="text-slate-700 font-semibold">Total Stock</FormLabel>
+                                        <div className="flex gap-4 items-center">
+                                            <FormControl>
+                                                <div className="relative group flex-1">
+                                                    <Calculator className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                                    <Input
+                                                        type="number"
+                                                        className="pl-10 h-11 font-mono text-lg bg-white border-slate-200 focus:ring-indigo-500"
+                                                        placeholder="0"
+                                                        {...field}
+                                                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                                                    />
+                                                </div>
+                                            </FormControl>
+                                            <div className="text-slate-500 text-sm font-medium w-16">
+                                                {form.watch("unit")}
+                                            </div>
+                                        </div>
+                                        <FormDescription className="text-xs">Initial available quantity.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <Button id="btn-inventory-create-save" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
-                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Add Item"}
-                            </Button>
+
+                            <div className="pt-6 flex justify-end gap-3">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => router.back()}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    id="btn-inventory-create-save"
+                                    type="submit"
+                                    className="bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-200 min-w-[140px]"
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save New Item"}
+                                </Button>
+                            </div>
                         </form>
                     </Form>
                 </CardContent>

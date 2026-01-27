@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Loader2, Edit, Printer, Package, ArrowLeft, FileText, Trash2, Calendar, Phone, MapPin, ChefHat, AlertTriangle } from "lucide-react";
+import { Loader2, Edit, Printer, Package, ArrowLeft, FileText, Trash2, Calendar, Phone, MapPin, ChefHat, AlertTriangle, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,7 +12,9 @@ import { Event, InventoryItem } from "@/types";
 import { useSession } from "next-auth/react";
 import { RBACWrapper } from "@/components/rbac-wrapper";
 import { generateEventManifest } from "@/lib/pdf-generator";
+import { QRDialog } from "./qr-dialog";
 import { Separator } from "@/components/ui/separator";
+import { EventStepper } from "./event-stepper";
 
 interface EventDetailsClientProps {
     initialEvent: Event;
@@ -132,7 +134,14 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     <Button variant="outline" onClick={() => generateEventManifest(event, logs)}>
                         <FileText className="mr-2 h-4 w-4" /> Manifest
                     </Button>
+                    <QRDialog eventId={event.id} eventName={event.name} />
                     <RBACWrapper componentId="btn-event-edit">
+                        <Button
+                            variant="outline"
+                            onClick={() => router.push(`/events/new?fromId=${event.id}`)}
+                        >
+                            <Copy className="mr-2 h-4 w-4" /> Clone
+                        </Button>
                         <Button
                             variant="outline"
                             onClick={() => router.push(`/events/${event.id}/edit`)}
@@ -155,6 +164,84 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                         </Button>
                     </RBACWrapper>
                 </div>
+            </div>
+
+            {/* Event Stepper */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div className="mb-4">
+                    <h2 className="text-base font-semibold text-slate-800">Event Progress</h2>
+                </div>
+                {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const eventDate = new Date(event.occasionDate);
+                    eventDate.setHours(0, 0, 0, 0);
+
+                    // Compute aggregates
+                    let totalIssued = 0;
+                    let totalDeficit = 0;
+                    let totalLost = 0;
+
+                    inventory.forEach(item => {
+                        const s = getItemStats(item.id);
+                        if (s.issued > 0) {
+                            totalIssued += s.issued;
+                            totalDeficit += s.deficit;
+                            totalLost += s.lost;
+                        }
+                    });
+
+                    // Logic
+                    let step = 0; // Booked
+
+                    const msPerHour = 1000 * 60 * 60;
+                    const hoursSinceEvent = (today.getTime() - eventDate.getTime()) / msPerHour;
+
+                    if (event.status === "COMPLETED") {
+                        step = 4; // Settled
+                    } else if (hoursSinceEvent > 48) {
+                        step = 4; // Auto-settle after 48 hours
+                    } else if (totalIssued > 0) {
+                        step = 1; // Dispatched
+
+                        // If today matches event date
+                        if (today.getTime() === eventDate.getTime()) {
+                            step = 2; // Active
+                        }
+                        // If today is after event date OR full returns started
+                        else if (today > eventDate) {
+                            step = 3; // Returning
+                        }
+
+                        // Check for Settlement (manual/inventory based)
+                        if (totalIssued > 0 && totalDeficit <= 0 && step >= 3) {
+                            step = 4; // Settled
+                        }
+                    }
+
+                    // Settlement Info Text
+                    let settlementInfo = "";
+                    if (step === 4) {
+                        if (hoursSinceEvent > 48) {
+                            const settleDate = new Date(eventDate);
+                            settleDate.setHours(settleDate.getHours() + 48);
+                            settlementInfo = `Auto-Settled: ${format(settleDate, "MMM d, h:mm a")}`;
+                        } else {
+                            settlementInfo = "Settled: Inventory Match";
+                        }
+                    } else if (step >= 2 && step < 4) {
+                        const remainingHours = Math.max(0, Math.ceil(48 - hoursSinceEvent));
+                        if (remainingHours > 0) {
+                            settlementInfo = `Auto-settle in ${remainingHours}h`;
+                        } else {
+                            settlementInfo = "Settling soon...";
+                        }
+                    }
+
+                    return (
+                        <EventStepper currentStep={step} isCancelled={isCancelled} settlementInfo={settlementInfo} />
+                    );
+                })()}
             </div>
 
             {/* Main Content Grid */}
