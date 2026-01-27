@@ -23,7 +23,7 @@ export function PageHeader({ title, description, actions, mobileActions, backUrl
     const router = useRouter();
 
     return (
-        <div className="flex flex-col gap-4 pb-6 pt-2 md:flex-row md:items-center md:justify-between border-b border-slate-100 mb-8">
+        <div className="flex flex-col gap-4 pb-6 pt-8 md:flex-row md:items-center md:justify-between border-b border-slate-100 mb-8">
             <div className="space-y-1.5">
                 {backUrl && (
                     <Button

@@ -104,21 +104,19 @@ export function DataTable<T extends Record<string, any>>({
             </div>
 
             {/* Table Container */}
-            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+            <div className="rounded-[10px] overflow-hidden bg-card shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04)]">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30 hover:bg-slate-50 border-b border-slate-200 dark:border-slate-700">
+                        <TableRow className="border-b border-slate-100 hover:bg-transparent">
                             {columns.map((col, idx) => (
                                 <TableHead
                                     key={idx}
                                     className={cn(
-                                        "h-12 px-4 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400",
+                                        "h-11 text-xs font-semibold text-muted-foreground uppercase tracking-wide",
                                         col.className
                                     )}
                                 >
-                                    <div className="flex items-center gap-1.5">
-                                        {col.header}
-                                    </div>
+                                    {col.header}
                                 </TableHead>
                             ))}
                         </TableRow>
@@ -129,9 +127,7 @@ export function DataTable<T extends Record<string, any>>({
                                 <TableRow
                                     key={rowIdx}
                                     className={cn(
-                                        "border-b border-slate-100 dark:border-slate-800 transition-all duration-150",
-                                        "hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-violet-50/30 dark:hover:from-slate-800/80 dark:hover:to-slate-800/50",
-                                        rowIdx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50/30 dark:bg-slate-900/50",
+                                        "border-b border-slate-50 hover:bg-slate-50/50 transition-colors",
                                         onRowClick && "cursor-pointer"
                                     )}
                                     onClick={() => onRowClick && onRowClick(item)}
@@ -139,10 +135,7 @@ export function DataTable<T extends Record<string, any>>({
                                     {columns.map((col, colIdx) => (
                                         <TableCell
                                             key={colIdx}
-                                            className={cn(
-                                                "py-4 px-4 text-sm text-slate-700 dark:text-slate-300",
-                                                col.className
-                                            )}
+                                            className={cn("py-4", col.className)}
                                         >
                                             {col.cell ? col.cell(item) : item[col.accessorKey as string]}
                                         </TableCell>
@@ -151,13 +144,10 @@ export function DataTable<T extends Record<string, any>>({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-64 text-center">
-                                    <div className="flex flex-col items-center justify-center text-slate-500">
-                                        <div className="h-16 w-16 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl flex items-center justify-center mb-4 shadow-inner">
-                                            {emptyIcon || <Package className="h-8 w-8 text-slate-300 dark:text-slate-600" />}
-                                        </div>
-                                        <p className="font-semibold text-slate-700 dark:text-slate-300">{emptyTitle}</p>
-                                        <p className="text-sm mt-1 text-slate-400">{emptyDescription}</p>
+                                <TableCell colSpan={columns.length} className="h-32 text-center">
+                                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                                        <Package className="h-8 w-8 mb-2 opacity-40" />
+                                        <p className="font-medium">{emptyTitle}</p>
                                     </div>
                                 </TableCell>
                             </TableRow>

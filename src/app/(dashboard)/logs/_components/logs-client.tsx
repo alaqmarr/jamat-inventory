@@ -160,7 +160,7 @@ export function LogsClient() {
     }
 
     return (
-        <div className="container mx-auto p-4 max-w-6xl space-y-6">
+        <div className="container mx-auto p-6 md:p-10 max-w-[1600px] space-y-10">
             <PageHeader
                 title="System Logs"
                 description="Real-time activity log of all system actions and events."
@@ -215,14 +215,14 @@ export function LogsClient() {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100/50 hover:bg-slate-50">
-                            <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600 w-[180px]">Timestamp</TableHead>
-                            <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600 w-[150px]">User</TableHead>
-                            <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600 w-[180px]">Action</TableHead>
-                            <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600">Details</TableHead>
+                        <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-200">
+                            <TableHead className="h-14 font-semibold text-slate-700 w-[180px] pl-6">Timestamp</TableHead>
+                            <TableHead className="h-14 font-semibold text-slate-700 w-[200px]">User</TableHead>
+                            <TableHead className="h-14 font-semibold text-slate-700 w-[150px]">Action</TableHead>
+                            <TableHead className="h-14 font-semibold text-slate-700 pl-6">Details</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -243,27 +243,26 @@ export function LogsClient() {
                                 <TableRow
                                     key={log.id}
                                     className={cn(
-                                        "border-b border-slate-100 transition-colors",
-                                        "hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-violet-50/30",
+                                        "border-b border-slate-100 transition-colors hover:bg-slate-50",
                                         idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"
                                     )}
                                 >
-                                    <TableCell className="py-4">
+                                    <TableCell className="py-5 pl-6">
                                         <div>
-                                            <p className="font-medium text-slate-700 text-sm">{format(new Date(log.timestamp), "MMM d, yyyy")}</p>
-                                            <p className="text-xs text-slate-400">{format(new Date(log.timestamp), "h:mm:ss a")}</p>
+                                            <p className="font-medium text-slate-900 text-sm">{format(new Date(log.timestamp), "MMM d, yyyy")}</p>
+                                            <p className="text-xs text-slate-500 mt-0.5">{format(new Date(log.timestamp), "h:mm:ss a")}</p>
                                         </div>
                                     </TableCell>
                                     <TableCell className="py-4">
                                         <div className="flex items-center gap-2">
-                                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-xs font-bold text-white">
+                                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700">
                                                 {log.userName?.charAt(0).toUpperCase() || "?"}
                                             </div>
                                             <span className="font-medium text-slate-800 text-sm">{log.userName || "System"}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="py-4">{getActionBadge(log.action)}</TableCell>
-                                    <TableCell className="py-4">{renderDetails(log.details)}</TableCell>
+                                    <TableCell className="py-5 pl-6">{renderDetails(log.details)}</TableCell>
                                 </TableRow>
                             ))
                         )}

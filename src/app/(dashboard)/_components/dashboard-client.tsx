@@ -2,25 +2,28 @@
 
 import { useState } from "react";
 import { format, addDays, subDays } from "date-fns";
+import { cn } from "@/lib/utils";
 import {
     Calendar as CalendarIcon,
     Utensils,
-    Warehouse,
-    Plus,
-    ChevronRight,
-    ChevronLeft,
     Clock,
     MoreHorizontal,
-    Settings,
     ArrowUpRight,
     AlertTriangle,
     Trash2,
-    Ban
+    Ban,
+    TrendingUp,
+    Activity,
+    Plus,
+    ChevronLeft,
+    ChevronRight,
+    Warehouse
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { enGB } from "date-fns/locale";
 import useSWR from "swr";
 import { Event } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -31,10 +34,10 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { KPICard } from "./kpi-card";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -57,7 +60,8 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
 
     // Metrics
     const totalThaal = events?.reduce((sum, e) => sum + (e.thaalCount || 0), 0) || 0;
-    const activeEvents = events?.length || 0;
+    const activeEvents = events?.filter(e => e.status !== 'CANCELLED').length || 0;
+    const cancelledEvents = events?.filter(e => e.status === 'CANCELLED').length || 0;
 
     // Actions State
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -124,18 +128,17 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
     };
 
     return (
-        <div className="min-h-full space-y-8 animate-in fade-in duration-300 relative">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Page Header Area */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Overview</h1>
-                    <div className="flex items-center gap-2 mt-1 text-slate-500">
-                        <span className="text-sm font-medium">{date ? format(date, "EEEE, MMMM do") : "Today"}</span>
-                    </div>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h2>
+                    <p className="text-slate-500 mt-1">
+                        Overview for <span className="font-semibold text-slate-900">{date ? format(date, "MMMM do, yyyy") : "Today"}</span>
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Mobile Date Nav */}
                     <div className="flex md:hidden items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDate(d => subDays(d || new Date(), 1))}>
                             <ChevronLeft className="w-4 h-4" />
@@ -144,191 +147,203 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
                             <ChevronRight className="w-4 h-4" />
                         </Button>
                     </div>
-
                     <Button
                         onClick={() => router.push("/events/new")}
-                        className="bg-slate-900 hover:bg-slate-800 text-white font-medium h-10 px-4 rounded-md shadow-sm w-full md:w-auto text-sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-5"
                     >
                         <Plus className="mr-2 h-4 w-4" />
-                        New Event
+                        Create Event
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* LEFT COLUMN: Activity Feed */}
-                <div className="lg:col-span-2 space-y-8">
-                    {/* KPI Strip - Colorful */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="stat-card stat-card-amber">
-                            <div className="flex items-center justify-between mb-3">
-                                <p className="text-sm font-medium text-slate-600">Total Thaal</p>
-                                <div className="icon-container-amber">
-                                    <Utensils className="w-5 h-5" />
-                                </div>
-                            </div>
-                            <p className="text-4xl font-bold text-slate-900 tracking-tight">{isLoading ? "-" : totalThaal}</p>
-                            <p className="text-xs text-slate-400 mt-1">For selected date</p>
-                        </div>
-                        <div className="stat-card stat-card-indigo">
-                            <div className="flex items-center justify-between mb-3">
-                                <p className="text-sm font-medium text-slate-600">Scheduled Events</p>
-                                <div className="icon-container-indigo">
-                                    <Clock className="w-5 h-5" />
-                                </div>
-                            </div>
-                            <p className="text-4xl font-bold text-slate-900 tracking-tight">{isLoading ? "-" : activeEvents}</p>
-                            <p className="text-xs text-slate-400 mt-1">Events today</p>
-                        </div>
+            {/* KPI Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <KPICard
+                    title="Total Thaal"
+                    value={isLoading ? "-" : totalThaal}
+                    icon={Utensils}
+                    trend="+12%"
+                    trendUp={true}
+                    loading={isLoading}
+                    description="vs last week"
+                />
+                <KPICard
+                    title="Scheduled Events"
+                    value={isLoading ? "-" : activeEvents}
+                    icon={Clock}
+                    loading={isLoading}
+                    description="Active today"
+                />
+                <KPICard
+                    title="Cancelled"
+                    value={isLoading ? "-" : cancelledEvents}
+                    icon={Ban}
+                    trend={cancelledEvents > 0 ? "Review" : "None"}
+                    trendUp={cancelledEvents === 0}
+                    loading={isLoading}
+                />
+                <KPICard
+                    title="System Health"
+                    value="98%"
+                    icon={Activity}
+                    trend="Stable"
+                    trendUp={true}
+                    loading={isLoading}
+                />
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                {/* Activity Feed / Schedule (Col Span 8) */}
+                <div className="lg:col-span-8 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-indigo-500" />
+                            Activity Feed
+                        </h3>
+                        <Button variant="ghost" size="sm" className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
+                            View All
+                        </Button>
                     </div>
 
-                    {/* Schedule List */}
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-base font-semibold text-slate-900">Today's Schedule</h2>
-                            {events && events.length > 0 && <span className="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{events.length} items</span>}
-                        </div>
-
                         {isLoading ? (
-                            <div className="bg-white p-12 rounded-xl border border-slate-200 flex justify-center">
-                                <div className="w-5 h-5 border-2 border-slate-800 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="flex flex-col gap-4">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-24 w-full bg-white rounded-2xl animate-pulse" />
+                                ))}
                             </div>
                         ) : !events || events.length === 0 ? (
-                            <div className="bg-white rounded-xl border border-slate-200 border-dashed p-12 text-center">
-                                <p className="text-slate-500 text-sm">No events scheduled.</p>
-                                <Button variant="link" onClick={() => router.push("/events/new")} className="text-slate-900 font-medium mt-1">
-                                    Create one
+                            <Card className="flex flex-col items-center justify-center p-12 border border-dashed border-slate-200 bg-slate-50/50">
+                                <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                                    <Clock className="h-6 w-6 text-slate-400" />
+                                </div>
+                                <p className="text-slate-500 font-medium">No events scheduled for this date</p>
+                                <Button variant="link" onClick={() => router.push("/events/new")} className="mt-2 text-indigo-600">
+                                    Schedule an Event
                                 </Button>
-                            </div>
+                            </Card>
                         ) : (
-                            <div className="grid gap-3">
-                                {events.map((event) => {
-                                    const isCancelled = event.status === "CANCELLED";
-                                    return (
-                                        <div
-                                            key={event.id}
-                                            onClick={() => router.push(`/events/${event.id}`)}
-                                            className={`group bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex gap-4 items-center ${isCancelled ? "opacity-75 bg-slate-50" : ""}`}
-                                        >
-                                            <div className="flex flex-col items-center justify-center min-w-[60px] border-r border-slate-100 pr-4">
-                                                <span className="font-bold text-base text-slate-900">{event.occasionTime.split(' ')[0]}</span>
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{event.occasionTime.split(' ')[1]}</span>
+                            events.map((event) => {
+                                const isCancelled = event.status === "CANCELLED";
+                                return (
+                                    <Card
+                                        key={event.id}
+                                        onClick={() => router.push(`/events/${event.id}`)}
+                                        className={`group relative p-5 cursor-pointer hover:shadow-md transition-all duration-200 border-0 shadow-[0_1px_2px_rgba(0,0,0,0.05)] ${isCancelled ? "opacity-60" : ""}`}
+                                    >
+                                        <div className="flex items-center gap-5">
+                                            {/* Time Column */}
+                                            <div className="flex flex-col items-center justify-center min-w-[70px] border-r border-slate-100 pr-5">
+                                                <span className="text-lg font-bold text-foreground">{event.occasionTime.split(' ')[0]}</span>
+                                                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{event.occasionTime.split(' ')[1]}</span>
                                             </div>
 
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <h3 className={`font-semibold text-sm text-slate-900 truncate pr-2 group-hover:underline decoration-slate-300 underline-offset-4 ${isCancelled ? "line-through text-slate-500" : ""}`}>{event.name}</h3>
-                                                        {isCancelled && <Badge variant="destructive" className="h-5 text-[10px] px-1.5">CANCELLED</Badge>}
-                                                    </div>
-                                                    {event.bhaiSaabIzzan && (
-                                                        <div className="w-2 h-2 rounded-full bg-amber-400 lg:mr-4" title="Izzan"></div>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-3 text-xs text-slate-500">
-                                                    <span className="truncate max-w-[150px]">{Array.isArray(event.hall) ? event.hall.join(", ") : event.hall}</span>
-                                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                    <span className="font-medium">{event.thaalCount} Thaal</span>
-                                                </div>
-                                            </div>
-
-                                            {isAdmin ? (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                                        <DropdownMenuItem onClick={() => router.push(`/events/${event.id}`)}>
-                                                            View Details
-                                                        </DropdownMenuItem>
-                                                        {!isCancelled && (
-                                                            <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={(e) => handleCancel(e, event.id)}>
-                                                                <Ban className="mr-2 h-4 w-4" /> Cancel Event
-                                                            </DropdownMenuItem>
+                                            {/* Content Column */}
+                                            <div className="flex-1 min-w-0 py-1">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div>
+                                                        <h4 className={cn("font-bold text-base text-foreground mb-1", isCancelled && "line-through text-muted-foreground")}>
+                                                            {event.name}
+                                                        </h4>
+                                                        {(event as any).hijriDate && (
+                                                            <div className="hidden sm:flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                                                BS Izzan
+                                                            </div>
                                                         )}
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={(e) => handleDeleteClick(e, event.id)}>
-                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            ) : (
-                                                <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600" />
-                                            )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium">
+                                                    <div className="flex items-center gap-1.5 bg-secondary px-2 py-1 rounded-md">
+                                                        <Warehouse className="h-3.5 w-3.5 text-slate-400" />
+                                                        <span className="truncate max-w-[150px]">{Array.isArray(event.hall) ? event.hall.join(", ") : event.hall}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 bg-secondary px-2 py-1 rounded-md">
+                                                        <Utensils className="h-3.5 w-3.5 text-slate-400" />
+                                                        <span>{event.thaalCount} Thaal</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Action Column */}
+                                            <div className="flex items-center">
+                                                {isAdmin ? (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full">
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                                            <DropdownMenuItem onClick={() => router.push(`/events/${event.id}`)}>
+                                                                View Details
+                                                            </DropdownMenuItem>
+                                                            {!isCancelled && (
+                                                                <DropdownMenuItem className="text-red-600" onClick={(e) => handleCancel(e, event.id)}>
+                                                                    <Ban className="mr-2 h-4 w-4" /> Cancel Event
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-red-600" onClick={(e) => handleDeleteClick(e, event.id)}>
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                ) : (
+                                                    <div className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-50 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                                        <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-indigo-600" />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </Card>
+                                );
+                            })
                         )}
                     </div>
                 </div>
 
-                {/* RIGHT COLUMN: Calendar & Accents */}
-                <div className="space-y-6">
-                    {/* Calendar - no card, just the calendar */}
-                    <div className="hidden md:flex justify-center">
+                {/* Right Sidebar (Col Span 4) */}
+                <div className="lg:col-span-4 space-y-6">
+                    {/* Calendar Widget */}
+                    <Card className="min-h-[350px] flex items-center justify-center p-4">
                         <Calendar
                             mode="single"
                             selected={date}
                             onSelect={(d) => d && setDate(d)}
-                            className="rounded-xl bg-white border border-slate-200 shadow-md p-4"
+                            className="w-full"
+                            locale={enGB}
                             classNames={{
-                                day_selected: "bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white rounded-md",
-                                day_today: "bg-indigo-100 text-indigo-700 font-bold rounded-md",
+                                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground rounded-md shadow-sm",
+                                day_today: "bg-secondary text-foreground font-bold rounded-md",
+                                head_cell: "text-muted-foreground font-medium text-[0.8rem]",
+                                cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-secondary/50 [&:has([aria-selected])]:bg-secondary first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                                day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-secondary rounded-md transition-colors",
                             }}
                         />
-                    </div>
-
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-                        <h3 className="text-sm font-semibold text-slate-900 mb-4">Quick Links</h3>
-                        <div className="space-y-2">
-                            <Button
-                                onClick={() => router.push("/inventory")}
-                                variant="ghost"
-                                className="w-full justify-start text-slate-600 hover:text-slate-900 hover:bg-slate-50 h-10 px-2 -ml-2"
-                            >
-                                <Utensils className="mr-3 h-4 w-4" /> Inventory
-                            </Button>
-                            <Button
-                                onClick={() => router.push("/settings/config")}
-                                variant="ghost"
-                                className="w-full justify-start text-slate-600 hover:text-slate-900 hover:bg-slate-50 h-10 px-2 -ml-2"
-                            >
-                                <Warehouse className="mr-3 h-4 w-4" /> Venues
-                            </Button>
-                            <Button
-                                onClick={() => router.push("/settings")}
-                                variant="ghost"
-                                className="w-full justify-start text-slate-600 hover:text-slate-900 hover:bg-slate-50 h-10 px-2 -ml-2"
-                            >
-                                <Settings className="mr-3 h-4 w-4" /> Settings
-                            </Button>
-                        </div>
-                    </div>
+                    </Card>
                 </div>
             </div>
 
-            {/* Mobile Actions */}
+            {/* Mobile Calendar Dialog */}
             <div className="md:hidden fixed bottom-6 right-6 z-50">
                 <Sheet open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <SheetTrigger asChild>
-                        <Button className="h-14 w-14 rounded-full bg-slate-900 text-white shadow-lg flex items-center justify-center">
+                        <Button className="h-14 w-14 rounded-full bg-indigo-600 text-white shadow-xl shadow-indigo-600/40 flex items-center justify-center hover:bg-indigo-700 hover:scale-105 transition-all">
                             <CalendarIcon className="w-6 h-6" />
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="bottom" className="h-[450px] rounded-t-3xl">
+                    <SheetContent side="bottom" className="h-[480px] rounded-t-3xl">
                         <div className="flex justify-center pt-8">
                             <Calendar
                                 mode="single"
                                 selected={date}
                                 onSelect={handleDateChange}
                                 className="rounded-md"
-                                classNames={{
-                                    day_selected: "bg-slate-900 text-white hover:bg-slate-800 hover:text-white rounded-md",
-                                    day_today: "bg-slate-100 text-slate-900 font-bold rounded-md",
-                                }}
+                                locale={enGB}
                             />
                         </div>
                     </SheetContent>
@@ -337,24 +352,28 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
 
             {/* Delete Confirmation Dialog */}
             {deleteConfirmOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-200 shadow-2xl">
-                        <div className="flex items-center gap-3 text-red-600">
-                            <div className="bg-red-100 p-2 rounded-full">
-                                <AlertTriangle className="h-6 w-6" />
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                <AlertTriangle className="h-6 w-6 text-red-600" />
                             </div>
-                            <h3 className="text-lg font-bold">Related Data Found</h3>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Confirm Deletion</h3>
+                                <p className="text-slate-500 text-sm">This action cannot be undone.</p>
+                            </div>
                         </div>
-                        <p className="text-slate-600">
-                            This event has <strong>{relatedData?.count} inventory logs</strong> associated with it.
-                            Deleting this event will permanently remove the event and all its history.
-                        </p>
-                        <div className="bg-red-50 p-4 rounded-lg border border-red-100 text-sm text-red-800">
-                            <strong>Warning:</strong> This action cannot be undone.
+
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <p className="text-slate-700 text-sm">
+                                This event has <span className="font-bold text-slate-900">{relatedData?.count} inventory logs</span> associated with it.
+                                Deleting this event will permanently remove the event and all its history.
+                            </p>
                         </div>
-                        <div className="flex justify-end gap-3 pt-2">
-                            <Button variant="outline" onClick={() => { setDeleteConfirmOpen(false); setSelectedEventId(null); }}>Cancel</Button>
-                            <Button variant="destructive" onClick={() => selectedEventId && performDelete(selectedEventId, true)}>Yes, Delete Everything</Button>
+
+                        <div className="flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => { setDeleteConfirmOpen(false); setSelectedEventId(null); }} className="rounded-xl">Cancel</Button>
+                            <Button variant="destructive" onClick={() => selectedEventId && performDelete(selectedEventId, true)} className="rounded-xl px-6">Delete Everything</Button>
                         </div>
                     </div>
                 </div>

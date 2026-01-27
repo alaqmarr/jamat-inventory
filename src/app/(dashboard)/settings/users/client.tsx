@@ -132,10 +132,10 @@ export default function UsersPage() {
 
     const getRoleBadge = (role: string) => {
         switch (role) {
-            case "ADMIN": return <Badge className="bg-gradient-to-r from-red-500 to-rose-500 text-white border-0">Admin</Badge>;
-            case "MANAGER": return <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">Manager</Badge>;
-            case "STAFF": return <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0">Staff</Badge>;
-            default: return <Badge variant="secondary" className="bg-slate-200 text-slate-600">Watcher</Badge>;
+            case "ADMIN": return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-red-200">Admin</Badge>;
+            case "MANAGER": return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">Manager</Badge>;
+            case "STAFF": return <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-indigo-200">Staff</Badge>;
+            default: return <Badge variant="secondary" className="bg-slate-100 text-slate-600">Watcher</Badge>;
         }
     };
 
@@ -160,7 +160,7 @@ export default function UsersPage() {
     // ... existing code ...
 
     return (
-        <div className="container mx-auto p-4 max-w-5xl space-y-6">
+        <div className="container mx-auto p-8 md:p-12 max-w-7xl space-y-10">
             <PageHeader
                 title="User Management"
                 description="Create and manage system users and their roles."
@@ -168,7 +168,7 @@ export default function UsersPage() {
                     isAdmin && (
                         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button id="btn-user-add" className="bg-amber-600 hover:bg-amber-700 shadow-sm">
+                                <Button id="btn-user-add" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm text-white">
                                     <Plus className="mr-2 h-4 w-4" /> Add User
                                 </Button>
                             </DialogTrigger>
@@ -234,7 +234,7 @@ export default function UsersPage() {
                                                 </FormItem>
                                             )}
                                         />
-                                        <Button id="btn-user-create-save" type="submit" className="w-full bg-amber-600 hover:bg-amber-700">Create User</Button>
+                                        <Button id="btn-user-create-save" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">Create User</Button>
                                     </form>
                                 </Form>
                             </DialogContent>
@@ -244,15 +244,15 @@ export default function UsersPage() {
             />
 
             {isLoading ? (
-                <div className="flex justify-center p-20"><Loader2 className="h-8 w-8 animate-spin text-amber-600" /></div>
+                <div className="flex justify-center p-20"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {users.map((user) => (
-                        <Card key={user.uid} className="group hover:shadow-lg transition-all duration-300 border-slate-200 overflow-hidden">
-                            <div className="h-2 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500"></div>
-                            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+                        <Card key={user.uid} className="group hover:shadow-md transition-all duration-300 border-0 shadow-sm overflow-hidden">
+                            <div className="h-1 bg-indigo-500"></div>
+                            <CardHeader className="pt-6 pb-2 px-6 flex flex-row items-center justify-between space-y-0">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                                    <div className="h-12 w-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
                                         {(user.name || user.username).charAt(0).toUpperCase()}
                                     </div>
                                     <div>
@@ -273,7 +273,7 @@ export default function UsersPage() {
                                                 id={`btn-user-edit-${user.uid}`}
                                                 variant="ghost"
                                                 size="sm"
-                                                className="text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                                                className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
                                                 onClick={() => setUserToEdit(user)}
                                             >
                                                 <UserIcon className="h-4 w-4" />
@@ -374,7 +374,7 @@ function EditUserForm({ user, onSubmit }: { user: User, onSubmit: (values: any) 
                     placeholder="Leave blank to keep current"
                 />
             </div>
-            <Button id="btn-user-update-save" type="submit" className="w-full bg-amber-600 hover:bg-amber-700">Update User</Button>
+            <Button id="btn-user-update-save" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">Update User</Button>
         </form>
     );
 }

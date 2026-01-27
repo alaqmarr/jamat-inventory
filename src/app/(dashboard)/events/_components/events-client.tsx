@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { format, isPast, isToday, isFuture } from "date-fns";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import {
     Plus,
     Calendar as CalendarIcon,
@@ -20,7 +21,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import { toast } from "sonner";
 import { Event } from "@/types";
 import { useCurrentRole } from "@/hooks/use-current-role";
@@ -150,15 +158,24 @@ export default function EventsPage() {
                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Events</h1>
                     <p className="text-slate-500 mt-1">Manage and track all jamaat occasions.</p>
                 </div>
-                {canManage && (
+                <div className="flex gap-2">
                     <Button
-                        id="btn-event-create" // RBAC ID
-                        onClick={() => router.push("/events/new")}
-                        className="btn-gradient-primary shadow-lg h-11 px-6 rounded-xl"
+                        variant="outline"
+                        onClick={() => router.push("/events/calendar")}
+                        className="h-11 px-6 rounded-xl border-slate-200 text-slate-600 hover:text-indigo-600 hover:bg-slate-50"
                     >
-                        <Plus className="mr-2 h-5 w-5" /> New Event
+                        <CalendarIcon className="mr-2 h-5 w-5" /> Calendar View
                     </Button>
-                )}
+                    {canManage && (
+                        <Button
+                            id="btn-event-create" // RBAC ID
+                            onClick={() => router.push("/events/new")}
+                            className="btn-gradient-primary shadow-lg h-11 px-6 rounded-xl"
+                        >
+                            <Plus className="mr-2 h-5 w-5" /> New Event
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Stats Row */}
@@ -232,97 +249,79 @@ export default function EventsPage() {
                     <p className="text-slate-500 mt-1">Try adjusting your search filters.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filteredEvents.map((event) => {
                         const isCancelled = event.status === "CANCELLED";
                         return (
                             <Card
                                 key={event.id}
-                                className={`overflow-hidden transition-all duration-300 hover:shadow-lg border-slate-200 hover:border-indigo-200 group flex flex-col ${isCancelled ? 'bg-slate-50/50' : 'bg-white'}`}
+                                className={`cursor-pointer p-5 ${isCancelled ? 'opacity-60' : ''}`}
+                                onClick={() => router.push(`/events/${event.id}`)}
                             >
-                                <CardHeader className="p-5 pb-2">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-                                                {format(new Date(event.occasionDate), "MMM").toUpperCase()}
+                                {/* Header with Date Block & Status */}
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn(
+                                            "flex flex-col items-center justify-center w-12 h-12 rounded-lg",
+                                            isCancelled ? "bg-slate-100 text-slate-400" : "bg-emerald-50 text-emerald-600"
+                                        )}>
+                                            <span className="text-[10px] font-bold uppercase">
+                                                {format(new Date(event.occasionDate), "MMM")}
                                             </span>
-                                            <span className="text-3xl font-bold text-slate-900 -mt-1">
+                                            <span className="text-lg font-bold leading-none">
                                                 {format(new Date(event.occasionDate), "d")}
                                             </span>
                                         </div>
-                                        {getStatusBadge(event)}
+                                        <div>
+                                            <h3 className={cn(
+                                                "font-semibold text-foreground",
+                                                isCancelled && "line-through text-muted-foreground"
+                                            )}>
+                                                {event.name}
+                                            </h3>
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {event.occasionTime}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <h3 className={`font-bold text-lg text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors ${isCancelled ? 'line-through text-slate-500' : ''}`}>
-                                            {event.name}
-                                        </h3>
-                                        <p className="text-sm text-slate-500 line-clamp-1">{event.description}</p>
-                                    </div>
-                                </CardHeader>
+                                    {getStatusBadge(event)}
+                                </div>
 
-                                <CardContent className="p-5 pt-2 space-y-3 flex-1">
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <Clock className="w-4 h-4 text-slate-400" />
-                                        <span>{event.occasionTime}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                {/* Details */}
+                                <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                                    <div className="flex items-center gap-2">
                                         <MapPin className="w-4 h-4 text-slate-400" />
                                         <span className="truncate">{Array.isArray(event.hall) ? event.hall.join(", ") : event.hall}</span>
                                     </div>
-                                    <div className="flex items-center gap-4 pt-2">
-                                        <Badge variant="outline" className="text-slate-600 bg-slate-50 border-slate-200 font-normal">
-                                            <Users className="w-3 h-3 mr-1" /> {event.thaalCount} Thaal
-                                        </Badge>
-                                        {event.bhaiSaabIzzan && (
-                                            <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200 text-[10px]">IZZAN</Badge>
-                                        )}
+                                    <div className="flex items-center gap-2">
+                                        <Users className="w-4 h-4 text-slate-400" />
+                                        <span>{event.thaalCount} Thaal</span>
                                     </div>
-                                </CardContent>
+                                </div>
 
-                                <CardFooter className="p-4 bg-slate-50/50 border-t border-slate-100 flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 bg-white hover:bg-slate-50 text-slate-700 border-slate-200"
-                                        onClick={() => router.push(`/events/${event.id}`)}
-                                    >
-                                        View
-                                    </Button>
-                                    {isAdmin && (
-                                        <>
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                className="h-9 w-9 bg-white hover:text-indigo-600 text-slate-500 border-slate-200"
-                                                onClick={() => router.push(`/events/${event.id}/edit`)}
-                                                disabled={isCancelled}
-                                                title="Edit Event"
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            {!isCancelled && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="h-9 w-9 bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-500 border-slate-200"
-                                                    onClick={(e) => handleCancel(e, event.id)}
-                                                    title="Cancel Event"
-                                                >
-                                                    <Ban className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                className="h-9 w-9 bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-500 border-slate-200"
-                                                onClick={(e) => handleDeleteClick(e, event.id)}
-                                                title="Delete Event"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </>
-                                    )}
-                                </CardFooter>
+                                {/* Admin Actions */}
+                                {isAdmin && (
+                                    <div className="flex justify-end gap-1 pt-3 border-t border-slate-100">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0"
+                                            onClick={(e) => { e.stopPropagation(); router.push(`/events/${event.id}/edit`); }}
+                                            disabled={isCancelled}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                            onClick={(e) => handleDeleteClick(e, event.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </Card>
                         );
                     })}

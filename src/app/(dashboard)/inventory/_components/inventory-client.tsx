@@ -155,8 +155,8 @@ export default function InventoryClient({ initialItems }: InventoryClientProps) 
             accessorKey: "name" as keyof InventoryItem,
             cell: (item: InventoryItem) => (
                 <div className="flex flex-col">
-                    <span className="font-medium text-neutral-900 dark:text-neutral-100">{item.name}</span>
-                    <span className="text-xs text-neutral-500">{item.category}</span>
+                    <span className="font-medium">{item.name}</span>
+                    <span className="text-xs text-muted-foreground">{item.category}</span>
                 </div>
             )
         },
@@ -165,24 +165,24 @@ export default function InventoryClient({ initialItems }: InventoryClientProps) 
             accessorKey: "availableQuantity" as keyof InventoryItem,
             cell: (item: InventoryItem) => {
                 if (item.availableQuantity === 0)
-                    return <Badge variant="destructive" className="flex w-fit items-center gap-1"><AlertCircle className="w-3 h-3" /> Out of Stock</Badge>;
+                    return <Badge variant="destructive">Out of Stock</Badge>;
                 if (item.availableQuantity < 20)
-                    return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200 flex w-fit items-center gap-1"><ShieldAlert className="w-3 h-3" /> Low Stock</Badge>;
-                return <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 flex w-fit items-center gap-1"><CheckCircle2 className="w-3 h-3" /> In Stock</Badge>;
+                    return <Badge variant="secondary" className="bg-amber-100 text-amber-800">Low Stock</Badge>;
+                return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">In Stock</Badge>;
             }
         },
         {
             header: "Total",
             accessorKey: "totalQuantity" as keyof InventoryItem,
             cell: (item: InventoryItem) => (
-                <div className="font-mono text-sm">{item.totalQuantity} <span className="text-xs text-neutral-400">{item.unit}</span></div>
+                <div className="font-mono text-sm font-medium text-slate-600">{item.totalQuantity} <span className="text-xs text-slate-400 ml-0.5">{item.unit}</span></div>
             )
         },
         {
             header: "Available",
             accessorKey: "availableQuantity" as keyof InventoryItem,
             cell: (item: InventoryItem) => (
-                <div className="font-mono font-bold text-sm text-neutral-900 dark:text-white">{item.availableQuantity}</div>
+                <div className="font-mono font-bold text-sm text-slate-900">{item.availableQuantity}</div>
             )
         },
         {
@@ -190,21 +190,21 @@ export default function InventoryClient({ initialItems }: InventoryClientProps) 
             cell: (item: InventoryItem) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full">
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(item.name)}>
+                    <DropdownMenuContent align="end" className="w-48 p-1">
+                        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(item.name)} className="rounded-md cursor-pointer">
                             Copy Name
                         </DropdownMenuItem>
                         {canManage && (
                             <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem id={`btn-inventory-edit-${item.id}`} onClick={() => router.push(`/inventory/${item.id}/edit`)}>
+                                <DropdownMenuItem id={`btn-inventory-edit-${item.id}`} onClick={() => router.push(`/inventory/${item.id}/edit`)} className="rounded-md cursor-pointer">
                                     Edit Item
                                 </DropdownMenuItem>
-                                <DropdownMenuItem id={`btn-inventory-delete-${item.id}`} className="text-red-600" onClick={() => handleDelete(item.id)}>
+                                <DropdownMenuItem id={`btn-inventory-delete-${item.id}`} className="text-red-600 focus:bg-red-50 focus:text-red-700 rounded-md cursor-pointer" onClick={() => handleDelete(item.id)}>
                                     Delete Item
                                 </DropdownMenuItem>
                             </>
@@ -217,7 +217,7 @@ export default function InventoryClient({ initialItems }: InventoryClientProps) 
     ];
 
     return (
-        <div className="p-8 space-y-8 animate-in fade-in duration-500">
+        <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
             <InventoryStats items={items} />
 
             <DataTable
@@ -259,7 +259,7 @@ export default function InventoryClient({ initialItems }: InventoryClientProps) 
 
                             <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
                                 <SheetTrigger asChild>
-                                    <Button id="btn-inventory-add" className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
+                                    <Button id="btn-inventory-add" className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
                                         <Plus className="mr-2 h-4 w-4" /> Add Item
                                     </Button>
                                 </SheetTrigger>
@@ -347,7 +347,7 @@ export default function InventoryClient({ initialItems }: InventoryClientProps) 
                                             id="btn-inventory-quick-add-save"
                                             onClick={handleAddItem}
                                             disabled={isAdding}
-                                            className="w-full sm:flex-1 h-11 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md"
+                                            className="w-full sm:flex-1 h-11 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
                                         >
                                             {isAdding ? "Saving..." : "Save Item"}
                                         </Button>

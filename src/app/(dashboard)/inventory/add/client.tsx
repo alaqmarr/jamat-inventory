@@ -82,10 +82,10 @@ export default function AddInventoryPageClient() {
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900">Add Inventory</h1>
             </div>
 
-            <Card className="glass-card">
+            <Card className="border-0 shadow-sm">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <PackagePlus className="h-5 w-5 text-amber-600" />
+                        <PackagePlus className="h-5 w-5 text-emerald-600" />
                         New Item Details
                     </CardTitle>
                     <CardDescription>Add a new item to the global inventory.</CardDescription>
@@ -170,7 +170,7 @@ export default function AddInventoryPageClient() {
                                     </FormItem>
                                 )}
                             />
-                            <Button id="btn-inventory-create-save" type="submit" className="w-full bg-amber-600 hover:bg-amber-700" disabled={isLoading}>
+                            <Button id="btn-inventory-create-save" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
                                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Add Item"}
                             </Button>
                         </form>

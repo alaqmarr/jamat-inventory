@@ -43,6 +43,7 @@ export const metadata: Metadata = {
 
 import { Providers } from "@/components/providers";
 import NextTopLoader from "nextjs-toploader";
+import { CommandMenu } from "@/components/command-menu";
 
 export default function RootLayout({
   children,
@@ -55,7 +56,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextTopLoader color="#d97706" showSpinner={false} />
-        <Providers>{children}</Providers>
+        <Providers>
+          <CommandMenu />
+          {children}
+        </Providers>
       </body>
     </html>
   );

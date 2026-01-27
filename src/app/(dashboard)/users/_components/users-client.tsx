@@ -112,7 +112,7 @@ export function UsersClient() {
     if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600" /></div>;
 
     return (
-        <div className="container mx-auto p-4 max-w-6xl space-y-8">
+        <div className="container mx-auto p-8 md:p-12 max-w-7xl space-y-10">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">User Management</h1>

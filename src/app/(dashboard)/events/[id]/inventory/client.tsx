@@ -210,14 +210,14 @@ export default function EventInventoryClient() {
 
             {activeTab === "inventory" ? (
                 <div className="space-y-4">
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-slate-50 hover:bg-slate-50">
                                     <TableHead className="w-[250px] font-bold text-slate-700">Item Name</TableHead>
                                     <TableHead className="font-bold text-slate-700 text-center">In Stock</TableHead>
-                                    <TableHead className="font-bold text-indigo-700 text-center bg-indigo-50/50">Issued</TableHead>
-                                    <TableHead className="font-bold text-emerald-700 text-center bg-emerald-50/50">Returned</TableHead>
+                                    <TableHead className="font-bold text-indigo-700 text-center">Issued</TableHead>
+                                    <TableHead className="font-bold text-emerald-700 text-center">Returned</TableHead>
                                     <TableHead className="font-bold text-amber-700 text-center">Pending</TableHead>
                                     <TableHead className="text-right font-bold text-slate-700 pr-8">Actions</TableHead>
                                 </TableRow>
@@ -235,8 +235,8 @@ export default function EventInventoryClient() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-center font-mono text-slate-600 font-medium">{item.availableQuantity}</TableCell>
-                                            <TableCell className="text-center font-mono text-indigo-700 font-bold bg-indigo-50/30">{stats.issued}</TableCell>
-                                            <TableCell className="text-center font-mono text-emerald-700 font-bold bg-emerald-50/30">{stats.returned}</TableCell>
+                                            <TableCell className="text-center font-mono text-indigo-700 font-bold">{stats.issued}</TableCell>
+                                            <TableCell className="text-center font-mono text-emerald-700 font-bold">{stats.returned}</TableCell>
                                             <TableCell className="text-center">
                                                 {isDeficit ? (
                                                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap">
@@ -270,13 +270,13 @@ export default function EventInventoryClient() {
                         <div className="flex justify-end gap-3 pb-8">
                             <Button
                                 onClick={() => handleBulkAction("ISSUE")}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
                             >
                                 Issue All
                             </Button>
                             <Button
                                 onClick={() => handleBulkAction("RETURN")}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-200"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                             >
                                 Return All
                             </Button>

@@ -120,10 +120,42 @@ model Caterer {
 }
 
 model Hall {
-  id   String @id @default(cuid())
-  name String @unique
+  id         String      @id @default(cuid())
+  name       String      @unique
+  width      Float?      // Width in feet
+  length     Float?      // Length in feet
+  floorPlans FloorPlan[]
 
   @@map("halls")
+}
+
+model FloorPlan {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Wedding Setup"
+  hallId      String
+  hall        Hall     @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  data        Json     // Stores items: { id, type, x, y, rotation, ... }[]
+  width       Float    // Snapshot of width used
+  length      Float    // Snapshot of length used
+  isPublic    Boolean  @default(false)
+  publicToken String?  @unique @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("floor_plans")
+}
+
+model FloorItemType {
+  id        String   @id @default(cuid())
+  name      String   // e.g. "Royal Round Table"
+  type      String   // 'circle' | 'rectangle'
+  width     Float    // Feet
+  length    Float    // Feet
+  color     String?  // hex or tailwind class
+  icon      String?  // lucide icon name
+  createdAt DateTime @default(now())
+  
+  @@map("floor_item_types")
 }
 
 model Config {

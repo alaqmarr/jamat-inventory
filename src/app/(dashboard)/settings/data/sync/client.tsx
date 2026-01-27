@@ -43,7 +43,7 @@ export default function SyncDataClient() {
                 backUrl="/settings"
             />
 
-            <Card>
+            <Card className="border-0 shadow-sm">
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <RefreshCw className="h-5 w-5 text-indigo-600" />

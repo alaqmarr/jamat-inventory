@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Utensils, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -102,43 +102,72 @@ export function CaterersClient({ initialCaterers }: CaterersClientProps) {
     };
 
     return (
-        <div className="container mx-auto p-4 max-w-4xl space-y-6">
+        <div className="container mx-auto p-6 md:p-10 max-w-6xl space-y-10">
             <PageHeader
                 title="Caterers Management"
                 description="Manage approved food providers and contact details."
                 backUrl="/settings"
             />
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="border-0 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between p-6 md:p-8">
                     <div>
                         <CardTitle>Registered Caterers</CardTitle>
                         <CardDescription>List of available caterers.</CardDescription>
                     </div>
-                    <Button id="btn-caterer-add" onClick={() => handleOpenDialog()} className="bg-amber-600 hover:bg-amber-700">
+                    <Button id="btn-caterer-add" onClick={() => handleOpenDialog()} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
                         <Plus className="mr-2 h-4 w-4" /> Add Caterer
                     </Button>
                 </CardHeader>
-                <CardContent>
-                    <div className="space-y-2">
+                <CardContent className="p-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
                         {caterers.length === 0 ? (
-                            <p className="text-center text-slate-500 py-8">No caterers found. Add one to get started.</p>
+                            <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+                                <div className="h-12 w-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <Utensils className="h-6 w-6 text-slate-400" />
+                                </div>
+                                <h3 className="font-medium text-slate-900">No caterers added</h3>
+                                <p className="text-sm text-slate-500 mt-1">Add a caterer to manage their details.</p>
+                            </div>
                         ) : (
                             caterers.map((caterer) => (
-                                <div key={caterer.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-colors group">
-                                    <div>
-                                        <p className="font-medium text-slate-900">{caterer.name}</p>
-                                        <p className="text-sm text-slate-500">{caterer.phone || "No phone number"}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button id={`btn-caterer-edit-${caterer.id}`} variant="ghost" size="icon" onClick={() => handleOpenDialog(caterer)}>
-                                            <Pencil className="h-4 w-4 text-slate-500 hover:text-blue-600" />
-                                        </Button>
-                                        <Button id={`btn-caterer-delete-${caterer.id}`} variant="ghost" size="icon" onClick={() => handleDelete(caterer.id, caterer.name)}>
-                                            <Trash2 className="h-4 w-4 text-slate-500 hover:text-red-600" />
-                                        </Button>
-                                    </div>
-                                </div>
+                                <Card key={caterer.id} className="group border-0 shadow-sm hover:shadow-md transition-all overflow-hidden relative">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500"></div>
+                                    <CardContent className="p-5">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="h-10 w-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                                                <Utensils className="h-5 w-5" />
+                                            </div>
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button
+                                                    id={`btn-caterer-edit-${caterer.id}`}
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full"
+                                                    onClick={() => handleOpenDialog(caterer)}
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    id={`btn-caterer-delete-${caterer.id}`}
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                                    onClick={() => handleDelete(caterer.id, caterer.name)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <h3 className="font-semibold text-slate-900 text-lg mb-1">{caterer.name}</h3>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <Phone className="h-3 w-3 text-slate-500" />
+                                            </div>
+                                            <p className="text-sm text-slate-600 font-medium">{caterer.phone || "No contact info"}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             ))
                         )}
                     </div>
@@ -170,7 +199,7 @@ export function CaterersClient({ initialCaterers }: CaterersClientProps) {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                        <Button id="btn-caterer-create-save" onClick={handleSave} disabled={isSaving || !formData.name.trim()}>
+                        <Button id="btn-caterer-create-save" onClick={handleSave} disabled={isSaving || !formData.name.trim()} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save"}
                         </Button>
                     </DialogFooter>

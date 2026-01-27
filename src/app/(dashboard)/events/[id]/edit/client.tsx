@@ -180,8 +180,8 @@ export default function EditEventClient() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     {/* Reusing the same card structure as New Event - simplified for brevity */}
-                    <Card className="border-t-4 border-t-amber-500 shadow-lg">
-                        <CardHeader className="bg-slate-50"><CardTitle>Event Details</CardTitle></CardHeader>
+                    <Card className="border-0 shadow-sm">
+                        <CardHeader className="bg-slate-50 rounded-t-lg"><CardTitle>Event Details</CardTitle></CardHeader>
                         <CardContent className="p-6 grid gap-6 md:grid-cols-2">
                             <FormField control={form.control} name="mobile" render={({ field }) => (
                                 <FormItem><FormLabel>Mobile</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -210,8 +210,8 @@ export default function EditEventClient() {
                     </Card>
 
                     {/* Essentials - simplified */}
-                    <Card className="border-t-4 border-t-green-500 shadow-lg">
-                        <CardHeader className="bg-slate-50"><CardTitle>Requirements</CardTitle></CardHeader>
+                    <Card className="border-0 shadow-sm">
+                        <CardHeader className="bg-slate-50 rounded-t-lg"><CardTitle>Requirements</CardTitle></CardHeader>
                         <CardContent className="p-6">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                 <FormField control={form.control} name="thaalCount" render={({ field }) => (<FormItem><FormLabel>Thaal Count</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
@@ -235,8 +235,8 @@ export default function EditEventClient() {
                     </Card>
 
                     {/* Add-ons */}
-                    <Card className="border-t-4 border-t-purple-500 shadow-lg">
-                        <CardHeader className="bg-slate-50"><CardTitle>Facilities & Add-ons</CardTitle></CardHeader>
+                    <Card className="border-0 shadow-sm">
+                        <CardHeader className="bg-slate-50 rounded-t-lg"><CardTitle>Facilities & Add-ons</CardTitle></CardHeader>
                         <CardContent className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <FormField control={form.control} name="acStartTime" render={({ field }) => (
@@ -257,7 +257,7 @@ export default function EditEventClient() {
                         </CardContent>
                     </Card>
 
-                    <Button id="btn-event-update-submit" type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-lg py-6" disabled={isSaving}>
+                    <Button id="btn-event-update-submit" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-lg py-6" disabled={isSaving}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Event"}
                     </Button>
                 </form>

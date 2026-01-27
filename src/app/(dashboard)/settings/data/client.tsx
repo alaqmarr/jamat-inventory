@@ -98,7 +98,7 @@ export default function DataManagementPageClient() {
     };
 
     return (
-        <div className="container mx-auto p-4 max-w-4xl space-y-6">
+        <div className="container mx-auto p-8 md:p-12 max-w-6xl space-y-10">
             <PageHeader
                 title="Data Management"
                 description="Export system data, restore from backups, or sync databases."
@@ -115,7 +115,7 @@ export default function DataManagementPageClient() {
                 </TabsList>
 
                 <TabsContent value="export" className="space-y-6">
-                    <Card>
+                    <Card className="border-0 shadow-sm">
                         <CardHeader>
                             <div className="flex items-center gap-2">
                                 <Database className="h-5 w-5 text-blue-600" />
@@ -154,7 +154,7 @@ export default function DataManagementPageClient() {
                 </TabsContent>
 
                 <TabsContent value="restore">
-                    <Card>
+                    <Card className="border-0 shadow-sm">
                         <CardHeader>
                             <div className="flex items-center gap-2">
                                 <Upload className="h-5 w-5 text-orange-600" />
@@ -202,7 +202,7 @@ export default function DataManagementPageClient() {
                 </TabsContent>
 
                 <TabsContent value="sync">
-                    <Card>
+                    <Card className="border-0 shadow-sm">
                         <CardHeader>
                             <div className="flex items-center gap-2">
                                 <RefreshCw className="h-5 w-5 text-indigo-600" />
@@ -219,7 +219,7 @@ export default function DataManagementPageClient() {
                 </TabsContent>
 
                 <TabsContent value="health">
-                    <Card>
+                    <Card className="border-0 shadow-sm">
                         <CardHeader>
                             <div className="flex items-center gap-2">
                                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />

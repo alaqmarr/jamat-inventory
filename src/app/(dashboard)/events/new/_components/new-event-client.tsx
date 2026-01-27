@@ -167,6 +167,43 @@ export default function NewEventPage() {
         },
     });
 
+    const watchedDate = form.watch("occasionDate");
+    const watchedTime = form.watch("occasionTime");
+    const watchedHall = form.watch("hall");
+
+    useEffect(() => {
+        const checkRealtimeConflict = async () => {
+            if (!watchedDate || !watchedTime || !watchedHall || watchedHall.length === 0) return;
+
+            try {
+                const res = await fetch("/api/events/check-conflict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        occasionDate: watchedDate,
+                        occasionTime: watchedTime,
+                        hall: watchedHall,
+                    }),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.conflictType === "hard") {
+                        toast.error("Format Conflict: " + data.conflictMessage, { duration: 4000 });
+                        // Optionally set a localized error state
+                    } else if (data.conflictType === "soft") {
+                        toast.warning("Buffer Warning: " + data.conflictMessage, { duration: 5000 });
+                    }
+                }
+            } catch (e) {
+                // Silent fail for realtime check
+            }
+        };
+
+        const timer = setTimeout(checkRealtimeConflict, 1000);
+        return () => clearTimeout(timer);
+    }, [watchedDate, watchedTime, watchedHall]);
+
     const formValues = form.getValues();
 
     // Mobile lookup
@@ -297,26 +334,26 @@ export default function NewEventPage() {
     return (
         <div className="max-w-4xl mx-auto pb-20 animate-in fade-in duration-500">
             {/* Gradient Header */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 p-6 mb-8 text-white shadow-xl">
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-                <div className="relative z-10 flex items-center gap-4">
+            {/* Header */}
+            <Card className="p-6 mb-8 border-0 shadow-sm relative overflow-hidden bg-white">
+                <div className="flex items-center gap-4 relative z-10">
                     <Button
                         variant="ghost"
                         onClick={() => router.back()}
-                        className="h-10 w-10 p-0 rounded-xl text-white/80 hover:text-white hover:bg-white/10"
+                        className="h-10 w-10 p-0 hover:bg-slate-100"
                     >
-                        <ChevronLeft className="h-5 w-5" />
+                        <ChevronLeft className="h-5 w-5 text-muted-foreground" />
                     </Button>
                     <div className="flex-1">
-                        <h1 className="text-2xl font-bold tracking-tight">New Booking</h1>
-                        <p className="text-white/70 text-sm">Step {step} of {steps.length} • {format(new Date(), "EEEE, MMMM d")}</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">New Booking</h1>
+                        <p className="text-muted-foreground text-sm">Step {step} of {steps.length} • {format(new Date(), "EEEE, MMMM d")}</p>
                     </div>
-                    <div className="hidden md:flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl">
-                        <FileText className="h-4 w-4" />
-                        <span className="text-sm font-medium">{Math.round((step / steps.length) * 100)}% Complete</span>
+                    <div className="hidden md:flex items-center gap-2 bg-secondary px-4 py-2 rounded-lg">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">{Math.round((step / steps.length) * 100)}% Complete</span>
                     </div>
                 </div>
-            </div>
+            </Card>
 
             {/* Mobile Progress Indicator */}
             <div className="md:hidden mb-6">
@@ -336,7 +373,7 @@ export default function NewEventPage() {
             <div className="mb-10 relative hidden md:block">
                 <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full -z-10"></div>
                 <div
-                    className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-indigo-600 to-violet-600 -translate-y-1/2 rounded-full -z-10 transition-all duration-500"
+                    className="absolute top-1/2 left-0 h-1 bg-primary -translate-y-1/2 rounded-full -z-10 transition-all duration-500"
                     style={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
                 ></div>
 
@@ -356,17 +393,17 @@ export default function NewEventPage() {
                             >
                                 <div
                                     className={cn(
-                                        "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                                        isCompleted ? "bg-gradient-to-br from-indigo-600 to-violet-600 border-indigo-600 text-white shadow-lg shadow-indigo-200" :
-                                            isCurrent ? "bg-white border-indigo-600 text-indigo-600 shadow-lg ring-4 ring-indigo-100" :
-                                                "bg-slate-50 border-slate-200 text-slate-300"
+                                        "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-white",
+                                        isCompleted ? "border-primary text-primary shadow-sm" :
+                                            isCurrent ? "border-primary text-primary shadow-md ring-4 ring-primary/10" :
+                                                "border-slate-200 text-slate-300"
                                     )}
                                 >
                                     {isCompleted ? <Check className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
                                 </div>
                                 <span className={cn(
                                     "text-xs font-semibold whitespace-nowrap transition-colors duration-300",
-                                    isCompleted || isCurrent ? "text-slate-900" : "text-slate-400"
+                                    isCompleted || isCurrent ? "text-foreground" : "text-muted-foreground"
                                 )}>
                                     {s.title}
                                 </span>
@@ -377,7 +414,7 @@ export default function NewEventPage() {
             </div>
 
             {/* Form Card */}
-            <Card className="border-slate-200 shadow-sm rounded-xl overflow-hidden min-h-[500px]">
+            <Card className="border-0 shadow-sm rounded-[10px] overflow-hidden min-h-[500px]">
                 <CardContent className="p-8">
                     <Form {...form}>
                         <form onKeyDown={handleKeyDown} onSubmit={(e) => e.preventDefault()} className="space-y-8">
@@ -912,7 +949,7 @@ export default function NewEventPage() {
                                     <Button
                                         type="button"
                                         onClick={nextStep}
-                                        className="btn-gradient-primary h-11 px-8 rounded-xl shadow-lg"
+                                        className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 rounded-lg shadow-sm"
                                     >
                                         Next Step <ChevronRight className="ml-2 h-4 w-4" />
                                     </Button>
@@ -921,7 +958,7 @@ export default function NewEventPage() {
                                         id="btn-event-create-submit" // RBAC ID
                                         type="button"
                                         onClick={() => setIsConfirmOpen(true)}
-                                        className="h-11 px-8 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-200"
+                                        className="h-11 px-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                                     >
                                         <Check className="mr-2 h-4 w-4" /> Confirm & Create
                                     </Button>
@@ -944,7 +981,7 @@ export default function NewEventPage() {
                     <DrawerFooter className="flex flex-col gap-3 mt-4">
                         <Button
                             onClick={form.handleSubmit(onSubmit)}
-                            className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+                            className="w-full h-12 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                         >
                             <Check className="mr-2 h-4 w-4" /> Yes, Create Event
                         </Button>

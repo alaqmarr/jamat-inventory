@@ -30,7 +30,7 @@ export default function EventPrintPage() {
         fetchEvent();
     }, [eventId]);
 
-    if (isLoading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-amber-600" /></div>;
+    if (isLoading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
     if (!event) return <div className="p-10 text-center text-red-500">Event not found</div>;
 
     return (
@@ -46,7 +46,7 @@ export default function EventPrintPage() {
             {/* No-Print Controls */}
             <div className="max-w-4xl mx-auto mb-8 flex justify-between items-center print:hidden">
                 <Button variant="outline" onClick={() => window.history.back()}>Back to Dashboard</Button>
-                <Button onClick={() => window.print()} className="bg-amber-600 hover:bg-amber-700 text-white shadow-md">
+                <Button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
                     <Printer className="mr-2 h-4 w-4" /> Print Form
                 </Button>
             </div>
@@ -61,8 +61,8 @@ export default function EventPrintPage() {
                 </div>
 
                 {/* Document Title */}
-                <div className="bg-amber-50 border-b border-amber-100 p-2 text-center print:bg-amber-50 print:border-amber-100 print:p-1">
-                    <h2 className="text-lg font-bold text-amber-900 uppercase tracking-widest print:text-base">Miqaat Booking Form</h2>
+                <div className="bg-slate-100 border-b border-slate-200 p-2 text-center print:bg-slate-100 print:border-slate-200 print:p-1">
+                    <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest print:text-base">Miqaat Booking Form</h2>
                 </div>
 
                 <div className="p-4 print:p-2">

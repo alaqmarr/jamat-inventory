@@ -105,17 +105,17 @@ export function SettingsHubClient() {
     ];
 
     return (
-        <div className="container mx-auto p-4 max-w-5xl space-y-8">
+        <div className="container mx-auto p-8 md:p-12 max-w-7xl space-y-10">
             <PageHeader
                 title="Settings"
                 description="Manage global system configuration and master data."
             />
 
             {/* Database Status Card */}
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden border-0 shadow-sm">
                 {/* ... (Keep existing DB status card) ... */}
-                <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500"></div>
-                <CardHeader className="pb-3">
+                <div className="h-1 bg-emerald-500"></div>
+                <CardHeader className="pt-6 pb-3 px-6 md:px-8">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
@@ -247,8 +247,8 @@ export function SettingsHubClient() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {cards.map((card) => (
                         <Link key={card.href} href={card.href} className="group block h-full">
-                            <Card className="h-full transition-all hover:shadow-lg border-slate-200 group-hover:border-slate-300 overflow-hidden">
-                                <div className={cn("h-1.5 bg-gradient-to-r", card.gradient)}></div>
+                            <Card className="h-full transition-all hover:shadow-md border-0 shadow-sm overflow-hidden">
+                                <div className={cn("h-1", card.bg.replace("bg-", "bg-").replace("50", "500"))}></div>
                                 <CardHeader className="pb-3">
                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${card.bg}`}>
                                         <card.icon className={`h-6 w-6 ${card.color}`} />

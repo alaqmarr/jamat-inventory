@@ -18,7 +18,7 @@ export default function ExportDataClient() {
                 backUrl="/settings"
             />
 
-            <Card>
+            <Card className="border-0 shadow-sm">
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <Database className="h-5 w-5 text-blue-600" />

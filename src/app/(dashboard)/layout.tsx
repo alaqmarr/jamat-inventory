@@ -1,27 +1,30 @@
-import { Sidebar, MobileSidebar } from "@/components/layout/sidebar";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/header";
 import { ProfileCheck } from "@/components/profile-check";
 import { auth } from "@/lib/auth";
 import { Role } from "@/types";
-
+export const preferredRegion = ["sin1"];
 export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
     const session = await auth();
+    // Use role or default to something safe if undefined, though strict typing suggests it might be undefined
+    // sidebar handles undefined role gracefully
     const role = (session?.user as any)?.role as Role | undefined;
 
     return (
-        <div className="h-full relative">
+        <div className="h-full relative min-h-screen bg-slate-50/50">
             <ProfileCheck />
-            <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80] bg-white border-r border-slate-200 print:hidden">
-                <Sidebar role={role} />
-            </div>
-            <main className="md:pl-72 pb-10 pt-8 print:pl-0 h-full bg-slate-50/50 min-h-screen">
-                <div className="flex items-center p-4 md:hidden print:hidden">
-                    <MobileSidebar role={role} />
-                </div>
-                <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-8">
+
+            {/* Unified Sidebar handles both Mobile (Sheet) and Desktop (Fixed) */}
+            <Sidebar className="print:hidden" />
+
+            {/* Main Content - Padded to accomodate fixed sidebar on desktop */}
+            <main className="lg:pl-[280px] h-full transition-all duration-300 flex flex-col min-h-screen">
+                <Header />
+                <div className="flex-1 p-6 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
                     {children}
                 </div>
             </main>

@@ -137,7 +137,7 @@ export default function LostItemsClient() {
     }
 
     return (
-        <div className="container mx-auto p-4 max-w-6xl space-y-6">
+        <div className="container mx-auto p-6 md:p-10 max-w-[1600px] space-y-10">
             <PageHeader
                 title="Lost Items Recovery"
                 description="Track and recover items reported as lost or damaged across events."
@@ -197,6 +197,7 @@ export default function LostItemsClient() {
                 />
             </div>
 
+            {/* Table */}
             {logs.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-xl border border-slate-200">
                     <div className="flex flex-col items-center gap-4">
@@ -210,16 +211,16 @@ export default function LostItemsClient() {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100/50 hover:bg-slate-50">
-                                <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600">Item</TableHead>
-                                <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600">Event</TableHead>
-                                <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600">Reported By</TableHead>
-                                <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600 text-center">Date</TableHead>
-                                <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-red-600 text-center">Lost Qty</TableHead>
-                                <TableHead className="h-12 text-xs font-semibold uppercase tracking-wider text-slate-600 text-right">Action</TableHead>
+                            <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-200">
+                                <TableHead className="h-14 font-semibold text-slate-700 pl-6">Item</TableHead>
+                                <TableHead className="h-14 font-semibold text-slate-700">Event</TableHead>
+                                <TableHead className="h-14 font-semibold text-slate-700">Reported By</TableHead>
+                                <TableHead className="h-14 font-semibold text-slate-700 text-center">Date</TableHead>
+                                <TableHead className="h-14 font-semibold text-red-700 text-center">Lost Qty</TableHead>
+                                <TableHead className="h-14 font-semibold text-slate-700 text-right pr-6">Action</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -230,12 +231,11 @@ export default function LostItemsClient() {
                                     <TableRow
                                         key={log.id}
                                         className={cn(
-                                            "border-b border-slate-100 transition-colors",
-                                            "hover:bg-gradient-to-r hover:from-red-50/50 hover:to-orange-50/30",
+                                            "border-b border-slate-100 transition-colors hover:bg-slate-50",
                                             idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"
                                         )}
                                     >
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-5 pl-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
                                                     <Package className="h-5 w-5 text-red-600" />
@@ -264,12 +264,12 @@ export default function LostItemsClient() {
                                                 {remaining} / {original}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="py-4 text-right">
+                                        <TableCell className="py-5 text-right pr-6">
                                             <Button
                                                 size="sm"
                                                 onClick={() => handleRecoverClick(log)}
                                                 disabled={isRecovering}
-                                                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm"
                                             >
                                                 <CheckCircle className="h-4 w-4 mr-1" />
                                                 Recover
