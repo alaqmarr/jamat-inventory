@@ -4,31 +4,55 @@
     "/": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
     "/profile": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
     "/complete-profile": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+
+    "/events": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+    "/events/new": ["ADMIN", "MANAGER", "STAFF"],
+    "/events/[id]": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+    "/events/[id]/edit": ["ADMIN", "MANAGER", "STAFF"],
+    "/events/[id]/inventory": ["ADMIN", "MANAGER", "STAFF"],
+    "/events/[id]/print": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+
+    "/inventory": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+    "/inventory/add": ["ADMIN", "MANAGER", "STAFF"],
+    "/inventory/[id]/edit": ["ADMIN", "MANAGER", "STAFF"],
+
+    "/lost-items": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+
+    "/ledger": ["ADMIN", "MANAGER"],
+    "/logs": ["ADMIN", "MANAGER"],
+
+    "/settings": ["ADMIN", "MANAGER"],
+    "/settings/venues": ["ADMIN", "MANAGER"],
+    "/settings/caterers": ["ADMIN", "MANAGER"],
+
     "/settings/users": ["ADMIN"],
     "/settings/data": ["ADMIN"],
     "/settings/config": ["ADMIN"],
     "/settings/master-data": ["ADMIN"],
-    "/events": ["ADMIN", "MANAGER", "WATCHER", "STAFF"],
-    "/events/[id]/edit": ["ADMIN", "MANAGER"],
-    "/events/[id]/inventory": ["ADMIN", "MANAGER", "STAFF"],
-    "/events/new": ["ADMIN", "MANAGER"],
-    "/inventory/add": ["ADMIN", "MANAGER"],
-    "/ledger": ["ADMIN", "MANAGER"],
-    "/logs": ["ADMIN"]
+
+    "/users": ["ADMIN"]
   },
   "components": {
+    "btn-event-create": ["ADMIN", "MANAGER", "STAFF"],
+    "btn-event-edit": ["ADMIN", "MANAGER", "STAFF"],
     "btn-event-delete": ["ADMIN"],
-    "btn-event-edit": ["ADMIN", "MANAGER"],
-    "btn-inventory-add": ["ADMIN", "MANAGER"],
-    "btn-inventory-edit": ["ADMIN", "MANAGER"],
-    "btn-inventory-delete": ["ADMIN"],
+
+    "btn-inventory-add": ["ADMIN", "MANAGER", "STAFF"],
+    "btn-inventory-edit": ["ADMIN", "MANAGER", "STAFF"],
+    "btn-inventory-delete": ["ADMIN", "MANAGER"],
+
     "btn-user-create": ["ADMIN"],
     "btn-user-edit": ["ADMIN"],
     "btn-user-delete": ["ADMIN"],
+
     "btn-settings-sync": ["ADMIN"],
     "btn-settings-restore": ["ADMIN"],
     "btn-settings-reset": ["ADMIN"],
+
     "nav-settings": ["ADMIN", "MANAGER"],
-    "nav-ledger": ["ADMIN", "MANAGER"]
+    "nav-settings-admin": ["ADMIN"],
+    "nav-ledger": ["ADMIN", "MANAGER"],
+    "nav-logs": ["ADMIN", "MANAGER"],
+    "nav-users": ["ADMIN"]
   }
 }
