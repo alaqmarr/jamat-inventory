@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { logAction } from "@/lib/logger";
 import { rtdb } from "@/lib/firebase"; // Keep for RTDB logs if logAction uses it
-import { InventoryItem } from "@prisma/client";
+import { InventoryItem } from "@/generated/prisma/client";
 
 export async function POST(
   req: Request,
@@ -97,7 +97,7 @@ export async function POST(
     // Keeping inside is safer but logAction might be slow. Outside is standard for non-critical logs.
 
     // Determine log action name
-    let logActionType = "";
+    let logActionType: any = "SYSTEM_ACTION";
     if (action === "ISSUE") logActionType = "INVENTORY_REMOVED";
     else if (action === "RETURN") logActionType = "INVENTORY_RETURNED";
     else if (action === "LOSS") logActionType = "INVENTORY_LOSS";
