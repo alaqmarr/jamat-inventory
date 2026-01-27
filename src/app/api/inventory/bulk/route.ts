@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { InventoryItem } from "@/types";
+import { prisma } from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
@@ -10,38 +9,32 @@ export async function POST(req: Request) {
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: "Invalid items array" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const batch = db.batch();
-    const inventoryRef = db.collection("inventory");
+    // Transform items for Prisma
+    const prismaItems = items.map((item: any) => ({
+      name: item.name,
+      category: item.category,
+      totalQuantity: Number(item.totalQuantity),
+      availableQuantity: Number(item.totalQuantity),
+      unit: item.unit,
+    }));
 
-    items.forEach((item: any) => {
-      const docRef = inventoryRef.doc();
-      const newItem: Omit<InventoryItem, "id"> = {
-        name: item.name,
-        category: item.category,
-        totalQuantity: Number(item.totalQuantity),
-        availableQuantity: Number(item.totalQuantity), // Initially all available
-        unit: item.unit,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      batch.set(docRef, newItem);
+    const result = await prisma.inventoryItem.createMany({
+      data: prismaItems,
     });
-
-    await batch.commit();
 
     return NextResponse.json({
       message: "Bulk upload successful",
-      count: items.length,
+      count: result.count,
     });
   } catch (error) {
     console.error("Bulk upload error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

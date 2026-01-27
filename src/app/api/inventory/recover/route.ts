@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { db, rtdb } from "@/lib/firebase";
+import { rtdb } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { logAction } from "@/lib/logger";
 
@@ -16,27 +17,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    // Ref to item
-    const itemRef = db.collection("inventory").doc(itemId);
-    const itemDoc = await itemRef.get();
+    const user = session.user as any;
 
-    if (!itemDoc.exists) {
-      return NextResponse.json({ error: "Item not found" }, { status: 404 });
-    }
+    // 1. Update Prisma Inventory (Add back stock) via transaction
+    try {
+      await prisma.$transaction(async (tx) => {
+        const item = await tx.inventoryItem.findUnique({
+          where: { id: itemId },
+        });
 
-    // 1. Update Firestore Inventory (Add back stock)
-    await db.runTransaction(async (t) => {
-      const doc = await t.get(itemRef);
-      const data = doc.data()!;
+        if (!item) {
+          throw new Error("Item not found");
+        }
 
-      const newTotal = (data.totalQuantity || 0) + quantity;
-      const newAvailable = (data.availableQuantity || 0) + quantity;
-
-      t.update(itemRef, {
-        totalQuantity: newTotal,
-        availableQuantity: newAvailable,
+        await tx.inventoryItem.update({
+          where: { id: itemId },
+          data: {
+            totalQuantity: { increment: quantity },
+            availableQuantity: { increment: quantity },
+          },
+        });
       });
-    });
+    } catch (err: any) {
+      if (err.message === "Item not found") {
+        return NextResponse.json({ error: "Item not found" }, { status: 404 });
+      }
+      throw err;
+    }
 
     // 2. Update RTDB Log (Handle Partial Recovery)
     const logRef = rtdb.ref(`logs/${logId}`);
@@ -64,19 +71,25 @@ export async function POST(req: Request) {
     });
 
     // 3. Log the recovery action
+    // Need item name for log
+    const item = await prisma.inventoryItem.findUnique({
+      where: { id: itemId },
+      select: { name: true },
+    });
+
     await logAction(
       "INVENTORY_RETURNED",
       {
         eventId: eventId || "manual_recovery",
         itemId,
-        itemName: itemDoc.data()?.name,
+        itemName: item?.name || "Unknown Item",
         quantity,
         recoveredFromLogId: logId,
         note: `Recovered ${quantity} from Lost Items`,
       },
       {
-        id: session.user.id || "unknown",
-        name: session.user.name || "Unknown User",
+        id: user.id || "unknown",
+        name: user.name || "Unknown User",
       },
     );
 

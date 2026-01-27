@@ -1,31 +1,57 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { User } from "@/types";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const snapshot = await db.collection("users").get();
-    const users = snapshot.docs.map((doc) => ({
-      uid: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-    })) as User[];
+    const session = await auth();
+    const userRole = (session?.user as any)?.role;
 
-    // Remove passwords from response
-    const safeUsers = users.map(({ password, ...user }: any) => user);
+    // Strict Admin Only
+    if (!session || userRole !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        mobile: true,
+        name: true,
+        role: true,
+        profileStatus: true,
+        createdAt: true,
+      },
+    });
+
+    // Map id to uid for compatibility with frontend
+    const safeUsers = users.map((user) => ({
+      uid: user.id,
+      ...user,
+    }));
 
     return NextResponse.json(safeUsers);
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    const userRole = (session?.user as any)?.role;
+
+    // Strict Admin Only
+    if (!session || userRole !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { username, password, name, role, mobile } = body;
 
@@ -34,47 +60,46 @@ export async function POST(req: Request) {
     }
 
     // Check if username exists
-    const existingUser = await db
-      .collection("users")
-      .where("username", "==", username)
-      .get();
+    const existingUser = await prisma.user.findUnique({
+      where: { username },
+    });
 
-    if (!existingUser.empty) {
+    if (existingUser) {
       return NextResponse.json(
         { error: "Username already taken" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const newUser: User = {
-      uid: "user-" + Date.now(),
-      username,
-      name: name || "",
-      role,
-      createdAt: new Date(),
-      // mobile,
-    };
+    // Hash password before storing
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    await db
-      .collection("users")
-      .doc(newUser.uid)
-      .set({
-        ...newUser,
-        password, // In production, hash this!
+    const newUser = await prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+        name: name || "",
+        role,
         mobile: mobile || "",
-      });
-
-    return NextResponse.json({ success: true, user: newUser });
+      },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      },
+    });
 
     // Send email to admins
     try {
-      const adminsSnapshot = await db
-        .collection("users")
-        .where("role", "==", "ADMIN")
-        .get();
-      const adminEmails = adminsSnapshot.docs
-        .map((doc) => doc.data().email)
-        .filter((email) => email);
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMIN" },
+        select: { email: true },
+      });
+      const adminEmails = admins
+        .map((a) => a.email)
+        .filter((email): email is string => !!email);
 
       if (adminEmails.length > 0) {
         const { newUserTemplate, sendEmail } = await import("@/lib/email");
@@ -84,18 +109,23 @@ export async function POST(req: Request) {
           html: newUserTemplate({
             username,
             role,
-            email: "", // Email not in body yet, need to extract if present
+            email: "",
           }),
         });
       }
     } catch (emailError) {
       console.error("Failed to send new user email:", emailError);
     }
+
+    return NextResponse.json({
+      success: true,
+      user: { uid: newUser.id, ...newUser },
+    });
   } catch (error) {
     console.error("Error creating user:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
+import { ProfileStatus } from "@/generated/prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -14,21 +15,24 @@ export async function POST(req: Request) {
 
     const updates: any = {};
     if (skip) {
-      updates.profileStatus = "SKIPPED";
+      updates.profileStatus = "SKIPPED" as ProfileStatus;
     } else {
       if (email) updates.email = email;
       if (mobile) updates.mobile = mobile;
-      updates.profileStatus = "COMPLETED";
+      updates.profileStatus = "COMPLETED" as ProfileStatus;
     }
 
-    await db.collection("users").doc(userId).update(updates);
+    await prisma.user.update({
+      where: { id: userId },
+      data: updates,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Profile update failed:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

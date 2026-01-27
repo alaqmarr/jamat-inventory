@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { rtdb } from "@/lib/firebase";
+import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,15 @@ const INVENTORY_ACTIONS = [
 
 export async function GET() {
   try {
+    // RBAC Check
+    const session = await auth();
+    const role = (session?.user as any)?.role; // Type is string | Role
+
+    // Explicit check
+    if (role !== "ADMIN" && role !== "MANAGER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Fetch logs from RTDB
     const logsRef = rtdb.ref("logs");
     const snapshot = await logsRef.limitToLast(1000).once("value");

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Event, InventoryItem } from "@/types";
 import { useSession } from "next-auth/react";
+import { RBACWrapper } from "@/components/rbac-wrapper";
 
 interface EventDetailsClientProps {
     initialEvent: Event;
@@ -131,8 +132,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
             </div>
 
             {/* Admin Actions */}
-            {isAdmin && (
-                <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end">
+                <RBACWrapper componentId="btn-event-edit">
                     <Button
                         onClick={() => router.push(`/events/${event.id}/edit`)}
                         disabled={isCancelled}
@@ -140,16 +141,22 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     >
                         <Edit className="mr-2 h-4 w-4" /> Edit Event
                     </Button>
-                    {!isCancelled && (
+                </RBACWrapper>
+
+                {!isCancelled && (
+                    <RBACWrapper componentId="btn-event-edit">
                         <Button variant="outline" className="text-amber-600 border-amber-200 hover:bg-amber-50" onClick={handleCancelEvent}>
                             Cancel Event
                         </Button>
-                    )}
+                    </RBACWrapper>
+                )}
+
+                <RBACWrapper componentId="btn-event-delete">
                     <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleDeleteEvent(false)}>
                         Delete
                     </Button>
-                </div>
-            )}
+                </RBACWrapper>
+            </div>
 
             {/* Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

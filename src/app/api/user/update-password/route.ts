@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase"; // Keep for OTP verification
+import { prisma } from "@/lib/db";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
@@ -15,17 +17,17 @@ export async function POST(req: Request) {
     if (!otp || !newPassword) {
       return NextResponse.json(
         { error: "OTP and new password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Verify OTP
+    // Verify OTP (Firestore)
     const otpDoc = await db.collection("otps").doc(userId).get();
 
     if (!otpDoc.exists) {
       return NextResponse.json(
         { error: "Invalid or expired OTP" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,9 +48,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "OTP has expired" }, { status: 400 });
     }
 
-    // Update Password
-    await db.collection("users").doc(userId).update({
-      password: newPassword, // In a real app, hash this!
+    // Update Password (Prisma + Bcrypt)
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
     });
 
     // Delete used OTP
@@ -59,7 +64,7 @@ export async function POST(req: Request) {
     console.error("Failed to update password:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,9 +1,14 @@
-import { requireAccess } from "@/lib/rbac";
+import { redirect } from "next/navigation";
+import { checkPageAccess } from "@/lib/rbac-server";
 import EventsClient from "./_components/events-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function EventsPage() {
-    await requireAccess("/events");
+    const hasAccess = await checkPageAccess("/events");
+    if (!hasAccess) {
+        redirect("/");
+    }
+
     return <EventsClient />;
 }

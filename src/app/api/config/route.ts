@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { rtdb } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { rtdb } from "@/lib/firebase"; // Keep fallback or migration if needed
 
 export async function GET() {
   try {
@@ -8,8 +9,21 @@ export async function GET() {
     if (!session?.user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const snapshot = await rtdb.ref("config/bookingWindow").once("value");
-    const window = snapshot.val() || 60; // Default 60 minutes
+    // Try fetching from Prisma first
+    const config = await prisma.config.findUnique({
+      where: { key: "bookingWindow" },
+    });
+
+    let window = 60;
+    if (config) {
+      window = parseInt(config.value, 10);
+    } else {
+      // Fallback to RTDB if not in Prisma yet (migration strategy)
+      const snapshot = await rtdb.ref("config/bookingWindow").once("value");
+      const val = snapshot.val();
+      if (val) window = val;
+    }
+
     return NextResponse.json({ bookingWindow: window });
   } catch (error) {
     console.error("Config fetch error:", error);
@@ -40,7 +54,16 @@ export async function POST(req: Request) {
       );
     }
 
+    // Save to Prisma
+    await prisma.config.upsert({
+      where: { key: "bookingWindow" },
+      update: { value: bookingWindow.toString() },
+      create: { key: "bookingWindow", value: bookingWindow.toString() },
+    });
+
+    // Sync to RTDB for backward compatibility (optional, but good for safety)
     await rtdb.ref("config/bookingWindow").set(bookingWindow);
+
     return NextResponse.json({ success: true, bookingWindow });
   } catch (error) {
     console.error("Config update error:", error);

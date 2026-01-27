@@ -31,7 +31,7 @@ interface SettingsHubClientProps {
 }
 
 interface DbHealth {
-    firestore: { status: "connected" | "error"; latencyMs: number; error?: string };
+    database: { status: "connected" | "error"; latencyMs: number; error?: string };
     rtdb: { status: "connected" | "error"; latencyMs: number; error?: string };
 }
 
@@ -156,47 +156,47 @@ export function SettingsHubClient({ initialBookingWindow }: SettingsHubClientPro
                 <CardContent>
                     {dbHealth ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Firestore Status */}
+                            {/* Neon Check */}
                             <div className={cn(
                                 "p-4 rounded-xl border-2 transition-all",
-                                dbHealth.firestore.status === "connected"
+                                dbHealth.database?.status === "connected"
                                     ? "bg-emerald-50 border-emerald-200"
                                     : "bg-red-50 border-red-200"
                             )}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        {dbHealth.firestore.status === "connected" ? (
+                                        {dbHealth.database?.status === "connected" ? (
                                             <CheckCircle className="h-6 w-6 text-emerald-600" />
                                         ) : (
                                             <XCircle className="h-6 w-6 text-red-600" />
                                         )}
                                         <div>
-                                            <p className="font-semibold text-slate-900">Firestore</p>
-                                            <p className="text-xs text-slate-500">Document Database</p>
+                                            <p className="font-semibold text-slate-900">Neon PostgreSQL</p>
+                                            <p className="text-xs text-slate-500">Relational Database</p>
                                         </div>
                                     </div>
-                                    {dbHealth.firestore.status === "connected" && (
+                                    {dbHealth.database?.status === "connected" && (
                                         <div className="text-right">
-                                            <div className={cn("text-2xl font-bold font-mono", getLatencyColor(dbHealth.firestore.latencyMs))}>
-                                                {dbHealth.firestore.latencyMs}
+                                            <div className={cn("text-2xl font-bold font-mono", getLatencyColor(dbHealth.database.latencyMs))}>
+                                                {dbHealth.database.latencyMs}
                                                 <span className="text-sm font-normal text-slate-400 ml-0.5">ms</span>
                                             </div>
                                             <Badge className={cn(
                                                 "text-xs",
-                                                dbHealth.firestore.latencyMs < 100
+                                                dbHealth.database.latencyMs < 100
                                                     ? "bg-emerald-100 text-emerald-700"
-                                                    : dbHealth.firestore.latencyMs < 300
+                                                    : dbHealth.database.latencyMs < 300
                                                         ? "bg-amber-100 text-amber-700"
                                                         : "bg-red-100 text-red-700"
                                             )}>
                                                 <Zap className="h-3 w-3 mr-1" />
-                                                {dbHealth.firestore.latencyMs < 100 ? "Fast" : dbHealth.firestore.latencyMs < 300 ? "Normal" : "Slow"}
+                                                {dbHealth.database.latencyMs < 100 ? "Fast" : dbHealth.database.latencyMs < 300 ? "Normal" : "Slow"}
                                             </Badge>
                                         </div>
                                     )}
                                 </div>
-                                {dbHealth.firestore.error && (
-                                    <p className="text-xs text-red-600 mt-2">{dbHealth.firestore.error}</p>
+                                {dbHealth.database?.error && (
+                                    <p className="text-xs text-red-600 mt-2">{dbHealth.database.error}</p>
                                 )}
                             </div>
 

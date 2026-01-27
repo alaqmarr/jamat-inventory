@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db, rtdb } from "@/lib/firebase";
+import { rtdb } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import * as XLSX from "xlsx";
+import { Role, ProfileStatus, CrockeryStatus } from "@/generated/prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -50,33 +52,120 @@ export async function POST(req: Request) {
     } else {
       return NextResponse.json(
         { error: "Unsupported file format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Restore Data
-    const restoreCollection = async (col: string, items: any[]) => {
-      if (!items || !Array.isArray(items)) return;
-      const batch = db.batch();
-      let count = 0;
-
+    // Helper: Restore Users
+    const restoreUsers = async (items: any[]) => {
       for (const item of items) {
-        if (!item.id && !item.uid) continue; // Need an ID
-        const id = item.id || item.uid;
-        // Remove id from data to avoid duplication if it's in the body
-        const { id: _, uid: __, ...docData } = item;
+        if (!item.username) continue;
+        await prisma.user.upsert({
+          where: { username: item.username },
+          update: {
+            name: item.name,
+            email: item.email,
+            password: item.password,
+            role: item.role as Role,
+            mobile: item.mobile,
+            profileStatus: item.profileStatus as ProfileStatus,
+          },
+          create: {
+            username: item.username,
+            name: item.name,
+            email: item.email,
+            password: item.password,
+            role: item.role as Role,
+            mobile: item.mobile,
+            profileStatus: item.profileStatus as ProfileStatus,
+          },
+        });
+      }
+    };
 
-        const docRef = db.collection(col).doc(id);
-        batch.set(docRef, docData, { merge: true });
-        count++;
+    // Helper: Restore Events
+    const restoreEvents = async (items: any[]) => {
+      for (const item of items) {
+        const eventId = item.id || item.uid;
+        if (!eventId) continue;
 
-        // Commit batches of 500
-        if (count >= 400) {
-          await batch.commit();
-          count = 0;
+        const { id, uid, ...eventData } = item;
+        // Fix date format
+        const occasionDate = new Date(eventData.occasionDate);
+
+        await prisma.event.upsert({
+          where: { id: eventId },
+          update: {
+            ...eventData,
+            occasionDate,
+          },
+          create: {
+            id: eventId,
+            ...eventData,
+            occasionDate,
+          },
+        });
+      }
+    };
+
+    // Helper: Restore Inventory
+    const restoreInventory = async (items: any[]) => {
+      for (const item of items) {
+        const itemId = item.id;
+        if (!itemId) continue;
+
+        const { id, ...invData } = item;
+        await prisma.inventoryItem.upsert({
+          where: { id: itemId },
+          update: {
+            ...invData,
+            totalQuantity: Number(invData.totalQuantity),
+            availableQuantity: Number(invData.availableQuantity),
+          },
+          create: {
+            id: itemId,
+            ...invData,
+            totalQuantity: Number(invData.totalQuantity),
+            availableQuantity: Number(invData.availableQuantity),
+          },
+        });
+      }
+    };
+
+    // Helper: Restore Settings (Halls & Caterers)
+    const restoreSettings = async (settingsData: any) => {
+      if (!settingsData) return;
+      const dataToRestore = Array.isArray(settingsData)
+        ? settingsData[0]
+        : settingsData;
+
+      if (dataToRestore.halls && Array.isArray(dataToRestore.halls)) {
+        for (const hall of dataToRestore.halls) {
+          const name = typeof hall === "string" ? hall : hall.name;
+          if (name) {
+            await prisma.hall.upsert({
+              where: { name },
+              update: {},
+              create: { name },
+            });
+          }
         }
       }
-      if (count > 0) await batch.commit();
+
+      if (dataToRestore.caterers && Array.isArray(dataToRestore.caterers)) {
+        for (const caterer of dataToRestore.caterers) {
+          const name = typeof caterer === "string" ? caterer : caterer.name;
+          const phone = typeof caterer === "object" ? caterer.phone : "";
+
+          if (name) {
+            await prisma.caterer.upsert({
+              where: { name },
+              update: { phone },
+              create: { name, phone },
+            });
+          }
+        }
+      }
     };
 
     const restoreLogs = async (items: any[]) => {
@@ -93,31 +182,21 @@ export async function POST(req: Request) {
       }
     };
 
-    const restoreSettings = async (settingsData: any) => {
-      if (!settingsData) return;
-      // If it's an array (from Excel), take the first item or merge
-      const dataToRestore = Array.isArray(settingsData)
-        ? settingsData[0]
-        : settingsData;
-      await db
-        .collection("settings")
-        .doc("masterData")
-        .set(dataToRestore, { merge: true });
-    };
-
     // Execute Restores
-    if (data.users) await restoreCollection("users", data.users);
-    if (data.events) await restoreCollection("events", data.events);
-    if (data.inventory) await restoreCollection("inventory", data.inventory);
-    if (data.logs) await restoreLogs(data.logs);
+    if (data.users && Array.isArray(data.users)) await restoreUsers(data.users);
+    if (data.events && Array.isArray(data.events))
+      await restoreEvents(data.events);
+    if (data.inventory && Array.isArray(data.inventory))
+      await restoreInventory(data.inventory);
     if (data.settings) await restoreSettings(data.settings);
+    if (data.logs && Array.isArray(data.logs)) await restoreLogs(data.logs);
 
     return NextResponse.json({ success: true, message: "Restore completed" });
   } catch (error) {
     console.error("Restore failed:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+  WATCHER
+}
+
+enum ProfileStatus {
+  COMPLETED
+  SKIPPED
+}
+
+enum CrockeryStatus {
+  PENDING
+  NOT_REQUIRED
+  COMPLETED
+}
+
+enum EventStatus {
+  BOOKED
+  CANCELLED
+  COMPLETED
+}
+
+// Models
+model User {
+  id            String         @id @default(cuid())
+  username      String         @unique
+  password      String
+  email         String?
+  mobile        String?
+  name          String?
+  role          Role           @default(STAFF)
+  profileStatus ProfileStatus?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  events        Event[]        @relation("CreatedBy")
+
+  @@map("users")
+}
+
+model InventoryItem {
+  id                String   @id @default(cuid())
+  name              String
+  category          String
+  totalQuantity     Int
+  availableQuantity Int
+  unit              String   @default("pcs")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("inventory_items")
+}
+
+model Event {
+  id                  String         @id @default(cuid())
+  name                String
+  mobile              String
+  email               String?
+  occasionDate        DateTime
+  occasionDay         String?
+  occasionTime        String
+  description         String
+  hall                String[]
+  catererName         String
+  catererPhone        String
+  
+  thaalCount          Int            @default(0)
+  sarkariThaalSet     Int            @default(0)
+  bhaiSaabIzzan       Boolean        @default(false)
+  benSaabIzzan        Boolean        @default(false)
+  extraChilamchiLota  Int            @default(0)
+  tablesAndChairs     Int            @default(0)
+  mic                 Boolean        @default(false)
+  crockeryRequired    Boolean        @default(false)
+  thaalForDevri       Boolean        @default(false)
+  paat                Boolean        @default(false)
+  masjidLight         Boolean        @default(false)
+  crockeryStatus      CrockeryStatus @default(NOT_REQUIRED)
+  
+  acStartTime         String?
+  partyTime           String?
+  decorations         Boolean        @default(false)
+  gasCount            Int?
+  menu                String?
+  
+  status              EventStatus    @default(BOOKED)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  
+  createdBy           User?          @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById         String?
+
+  @@map("events")
+}
+
+model Caterer {
+  id    String @id @default(cuid())
+  name  String @unique
+  phone String
+
+  @@map("caterers")
+}
+
+model Hall {
+  id   String @id @default(cuid())
+  name String @unique
+
+  @@map("halls")
+}
+
+model Config {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  @@map("config")
+}

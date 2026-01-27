@@ -1,0 +1,34 @@
+{
+  "roles": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+  "pages": {
+    "/": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+    "/profile": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+    "/complete-profile": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+    "/settings/users": ["ADMIN"],
+    "/settings/data": ["ADMIN"],
+    "/settings/config": ["ADMIN"],
+    "/settings/master-data": ["ADMIN"],
+    "/events": ["ADMIN", "MANAGER", "WATCHER", "STAFF"],
+    "/events/[id]/edit": ["ADMIN", "MANAGER"],
+    "/events/[id]/inventory": ["ADMIN", "MANAGER", "STAFF"],
+    "/events/new": ["ADMIN", "MANAGER"],
+    "/inventory/add": ["ADMIN", "MANAGER"],
+    "/ledger": ["ADMIN", "MANAGER"],
+    "/logs": ["ADMIN"]
+  },
+  "components": {
+    "btn-event-delete": ["ADMIN"],
+    "btn-event-edit": ["ADMIN", "MANAGER"],
+    "btn-inventory-add": ["ADMIN", "MANAGER"],
+    "btn-inventory-edit": ["ADMIN", "MANAGER"],
+    "btn-inventory-delete": ["ADMIN"],
+    "btn-user-create": ["ADMIN"],
+    "btn-user-edit": ["ADMIN"],
+    "btn-user-delete": ["ADMIN"],
+    "btn-settings-sync": ["ADMIN"],
+    "btn-settings-restore": ["ADMIN"],
+    "btn-settings-reset": ["ADMIN"],
+    "nav-settings": ["ADMIN", "MANAGER"],
+    "nav-ledger": ["ADMIN", "MANAGER"]
+  }
+}

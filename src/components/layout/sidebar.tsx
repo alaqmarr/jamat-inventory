@@ -74,6 +74,7 @@ const routes = [
 ];
 
 import { Role } from "@/types";
+import rbacConfig from "@/config/rbac.json";
 
 interface SidebarProps {
     role?: Role;
@@ -94,72 +95,45 @@ export function Sidebar({ role }: SidebarProps) {
     // STAFF: Can only edit inventory
     // WATCHER: Can view inventory and events (no edit)
 
-    const routes = [
-        {
-            label: "Dashboard",
-            icon: LayoutDashboard,
-            href: "/",
-            roles: ["ADMIN", "MANAGER", "STAFF", "WATCHER"], // Everyone
-        },
-        {
-            label: "Events",
-            icon: CalendarDays,
-            href: "/events",
-            roles: ["ADMIN", "MANAGER", "WATCHER"], // View events
-        },
-        {
-            label: "New Event",
-            icon: CalendarPlus,
-            href: "/events/new",
-            roles: ["ADMIN", "MANAGER"], // Create events
-        },
-        {
-            label: "Inventory",
-            icon: Package,
-            href: "/inventory",
-            roles: ["ADMIN", "MANAGER", "STAFF", "WATCHER"], // Everyone (edit restricted in page)
-        },
-        {
-            label: "Ledger",
-            icon: ClipboardList,
-            href: "/ledger",
-            roles: ["ADMIN", "MANAGER"], // Financial data
-        },
-        {
-            label: "System Logs",
-            icon: ClipboardList,
-            href: "/logs",
-            roles: ["ADMIN", "MANAGER"],
-        },
-        {
-            label: "Lost Items",
-            icon: AlertCircle,
-            href: "/lost-items",
-            roles: ["ADMIN", "MANAGER", "STAFF"],
-        },
-        {
-            label: "Settings",
-            icon: Settings,
-            href: "/settings",
-            roles: ["ADMIN"],
-        },
-        {
-            label: "My Profile",
-            icon: UserCircle,
-            href: "/profile",
-            roles: ["ADMIN", "MANAGER", "STAFF", "WATCHER"], // Everyone
-        },
-        {
-            label: "Users",
-            icon: Users,
-            href: "/users",
-            roles: ["ADMIN"],
-        },
-    ];
-
+    // Filter based on rbac.json
     const filteredRoutes = routes.filter(route => {
-        if (!role) return false; // No role = no access
-        return route.roles.includes(role);
+        if (!role) return false;
+        if (role === "ADMIN") return true;
+
+        // Map route href to rbac page key
+        // e.g. /events/new -> /events/new
+        // e.g. /events -> /events
+
+        // We need to check if the route is restricted in rbac.json
+        // If it IS in rbac.json, we check if role is allowed.
+        // If it is NOT in rbac.json, we assume it's allowed for basic roles (MANAGER, STAFF, WATCHER) 
+        // OR we can default to hidden?
+
+        // Let's look at rbac.json:
+        // "/settings/users": ["ADMIN"]
+        // "/settings/data": ["ADMIN"]
+        // "/inventory/add": ["ADMIN", "MANAGER"]
+
+        // For the sidebar, we want to hide things the user CANNOT visit.
+
+        // Special mappings for sidebar
+        const rbacKey = route.href as keyof typeof rbacConfig.pages;
+        const allowedRoles = rbacConfig.pages[rbacKey];
+
+        if (allowedRoles) {
+            return allowedRoles.includes(role);
+        }
+
+        // If not explicitly listed in pages, check components for navigation override
+        // e.g. "nav-settings"
+        if (route.href === "/settings") {
+            return rbacConfig.components["nav-settings"]?.includes(role);
+        }
+        if (route.href === "/ledger") {
+            return rbacConfig.components["nav-ledger"]?.includes(role);
+        }
+
+        return true;
     });
 
     return (

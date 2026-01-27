@@ -1,45 +1,49 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { Event } from "@/types";
+import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { CrockeryStatus } from "@/generated/prisma/client";
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const date = searchParams.get("date"); // ISO string
-
-    let query: FirebaseFirestore.Query = db.collection("events");
-
-    if (date) {
-      // Filter by date (exact match on occasionDate string or range?)
-      // Assuming occasionDate is stored as ISO string, we might need to match the day.
-      // For simplicity, let's assume the client sends the start and end of the day, or we filter in memory (not ideal for large datasets).
-      // Better: Store 'occasionDay' as 'YYYY-MM-DD' for easy querying.
-      // Let's check the Event type again.
-
-      // The Event type has `occasionDate: string` (ISO) and `occasionDay: string` (Day name e.g. Friday).
-      // It doesn't seem to have a simple YYYY-MM-DD field.
-      // I'll try to query by range for the given date.
-      const targetDate = new Date(date);
-      const startOfDay = new Date(
-        targetDate.setHours(0, 0, 0, 0),
-      ).toISOString();
-      const endOfDay = new Date(
-        targetDate.setHours(23, 59, 59, 999),
-      ).toISOString();
-
-      query = query
-        .where("occasionDate", ">=", startOfDay)
-        .where("occasionDate", "<=", endOfDay);
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const snapshot = await query.orderBy("occasionDate", "asc").get();
-    const events = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Event[];
+    const { searchParams } = new URL(req.url);
+    const date = searchParams.get("date");
 
-    return NextResponse.json(events);
+    let whereClause = {};
+
+    if (date) {
+      const targetDate = new Date(date);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      whereClause = {
+        occasionDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      };
+    }
+
+    const events = await prisma.event.findMany({
+      where: whereClause,
+      orderBy: { occasionDate: "asc" },
+    });
+
+    // Transform dates to ISO strings for compatibility
+    const formattedEvents = events.map((event) => ({
+      ...event,
+      occasionDate: event.occasionDate.toISOString(),
+      createdAt: event.createdAt.toISOString(),
+      updatedAt: event.updatedAt.toISOString(),
+    }));
+
+    return NextResponse.json(formattedEvents);
   } catch (error) {
     console.error("Error fetching events:", error);
     return NextResponse.json(
@@ -104,60 +108,71 @@ export async function POST(req: Request) {
       );
     }
 
-    const eventData: Omit<Event, "id"> = {
-      mobile,
-      name,
-      email,
-      occasionDate, // Assuming client sends ISO string
-      occasionDay: new Date(occasionDate).toLocaleDateString("en-US", {
-        weekday: "long",
-      }),
-      occasionTime,
-      description,
-      hall,
-      catererName,
-      catererPhone,
-      thaalCount: Number(thaalCount),
-      sarkariThaalSet: Number(sarkariThaalSet),
-      extraChilamchiLota: Number(extraChilamchiLota),
-      tablesAndChairs: Number(tablesAndChairs),
-      bhaiSaabIzzan,
-      benSaabIzzan,
-      mic,
-      crockeryRequired,
-      crockeryStatus: crockeryRequired ? "PENDING" : "NOT_REQUIRED",
-      thaalForDevri,
-      paat,
-      masjidLight,
-      acStartTime,
-      partyTime,
-      decorations,
-      gasCount,
-      menu,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const parsedDate = new Date(occasionDate);
 
-    const docRef = await db.collection("events").add(eventData);
+    const newEvent = await prisma.event.create({
+      data: {
+        mobile,
+        name,
+        email: email || null,
+        occasionDate: parsedDate,
+        occasionDay: parsedDate.toLocaleDateString("en-US", {
+          weekday: "long",
+        }),
+        occasionTime: occasionTime || "",
+        description,
+        hall: Array.isArray(hall) ? hall : [hall],
+        catererName: catererName || "",
+        catererPhone: catererPhone || "",
+        thaalCount: Number(thaalCount) || 0,
+        sarkariThaalSet: Number(sarkariThaalSet) || 0,
+        extraChilamchiLota: Number(extraChilamchiLota) || 0,
+        tablesAndChairs: Number(tablesAndChairs) || 0,
+        bhaiSaabIzzan: Boolean(bhaiSaabIzzan),
+        benSaabIzzan: Boolean(benSaabIzzan),
+        mic: Boolean(mic),
+        crockeryRequired: Boolean(crockeryRequired),
+        crockeryStatus: crockeryRequired
+          ? ("PENDING" as CrockeryStatus)
+          : ("NOT_REQUIRED" as CrockeryStatus),
+        thaalForDevri: Boolean(thaalForDevri),
+        paat: Boolean(paat),
+        masjidLight: Boolean(masjidLight),
+        acStartTime: acStartTime || null,
+        partyTime: partyTime || null,
+        decorations: Boolean(decorations),
+        gasCount: gasCount ? Number(gasCount) : null,
+        menu: menu || null,
+        createdById: user.id || null,
+      },
+    });
 
     // Send email to admins and booker
     try {
-      const adminsSnapshot = await db
-        .collection("users")
-        .where("role", "==", "ADMIN")
-        .get();
-      const adminEmails = adminsSnapshot.docs
-        .map((doc) => doc.data().email)
-        .filter((email) => email);
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMIN" },
+        select: { email: true },
+      });
+      const adminEmails = admins
+        .map((a) => a.email)
+        .filter((e): e is string => !!e);
 
       if (adminEmails.length > 0 || email) {
         const { newEventTemplate, sendEmail } = await import("@/lib/email");
         const { generatePdf, eventPdfTemplate } = await import("@/lib/pdf");
 
+        // Prepare event data for PDF
+        const eventDataForPdf = {
+          ...newEvent,
+          occasionDate: newEvent.occasionDate.toISOString(),
+          createdAt: newEvent.createdAt.toISOString(),
+          updatedAt: newEvent.updatedAt.toISOString(),
+        };
+
         // Generate PDF
         let pdfBuffer: Buffer | undefined;
         try {
-          const pdfHtml = eventPdfTemplate(eventData);
+          const pdfHtml = eventPdfTemplate(eventDataForPdf as any);
           pdfBuffer = await generatePdf(pdfHtml);
         } catch (pdfError) {
           console.error("Failed to generate PDF:", pdfError);
@@ -166,10 +181,7 @@ export async function POST(req: Request) {
         const attachments = pdfBuffer
           ? [
               {
-                filename: `Event_${name.replace(
-                  /\s+/g,
-                  "_",
-                )}_${occasionDate}.pdf`,
+                filename: `Event_${name.replace(/\s+/g, "_")}_${occasionDate}.pdf`,
                 content: pdfBuffer,
               },
             ]
@@ -185,7 +197,7 @@ export async function POST(req: Request) {
               mobile,
               occasionDate,
               occasionTime,
-              hall,
+              hall: Array.isArray(hall) ? hall.join(", ") : hall,
               thaalCount: Number(thaalCount),
             }),
             attachments,
@@ -202,7 +214,7 @@ export async function POST(req: Request) {
               mobile,
               occasionDate,
               occasionTime,
-              hall,
+              hall: Array.isArray(hall) ? hall.join(", ") : hall,
               thaalCount: Number(thaalCount),
             }),
             attachments,
@@ -213,7 +225,16 @@ export async function POST(req: Request) {
       console.error("Failed to send new event email:", emailError);
     }
 
-    return NextResponse.json({ id: docRef.id, ...eventData }, { status: 201 });
+    // Return with formatted dates
+    return NextResponse.json(
+      {
+        ...newEvent,
+        occasionDate: newEvent.occasionDate.toISOString(),
+        createdAt: newEvent.createdAt.toISOString(),
+        updatedAt: newEvent.updatedAt.toISOString(),
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Error creating event:", error);
     return NextResponse.json(

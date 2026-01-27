@@ -18,10 +18,10 @@ const PAGE_ACCESS: Record<string, PageAccess> = {
   "/": { allowedRoles: ["ADMIN", "MANAGER", "STAFF", "WATCHER"] },
 
   // Events
-  "/events": { allowedRoles: ["ADMIN", "MANAGER", "WATCHER"] },
-  "/events/new": { allowedRoles: ["ADMIN", "MANAGER"] },
-  "/events/[id]": { allowedRoles: ["ADMIN", "MANAGER", "WATCHER"] },
-  "/events/[id]/inventory": { allowedRoles: ["ADMIN", "MANAGER"] },
+  "/events": { allowedRoles: ["ADMIN", "MANAGER", "WATCHER", "STAFF"] },
+  "/events/new": { allowedRoles: ["ADMIN", "MANAGER", "STAFF"] },
+  "/events/[id]": { allowedRoles: ["ADMIN", "MANAGER", "WATCHER", "STAFF"] },
+  "/events/[id]/inventory": { allowedRoles: ["ADMIN", "MANAGER", "STAFF"] },
 
   // Inventory - Everyone can view, but edit is restricted in component
   "/inventory": { allowedRoles: ["ADMIN", "MANAGER", "STAFF", "WATCHER"] },

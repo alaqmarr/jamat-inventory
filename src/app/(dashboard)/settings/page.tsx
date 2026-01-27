@@ -1,15 +1,13 @@
 import { redirect } from "next/navigation";
 import { rtdb } from "@/lib/firebase";
-import { auth } from "@/lib/auth";
+import { checkPageAccess } from "@/lib/rbac-server";
 import { SettingsHubClient } from "./_components/settings-hub-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsHubPage() {
-    const session = await auth();
-    const user = session?.user as any;
-
-    if (!user || user.role !== "ADMIN") {
+    const hasAccess = await checkPageAccess("/settings");
+    if (!hasAccess) {
         redirect("/unauthorized");
     }
 

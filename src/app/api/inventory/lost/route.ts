@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { rtdb, db } from "@/lib/firebase";
+import { rtdb } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
 export async function GET() {
@@ -9,7 +10,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch logs - Fallback to fetching latest 500 and filtering in-memory to avoid index issues
+    // Fetch logs - Fallback to fetching latest 500 and filtering in-memory
     const logsRef = rtdb.ref("logs");
     const snapshot = await logsRef.limitToLast(500).get();
 
@@ -43,23 +44,19 @@ export async function GET() {
       `[API] Found ${lostItems.length} lost items. Fetching details for ${eventIds.size} events.`,
     );
 
-    // Fetch Event Names
+    // Fetch Event Names from Prisma
     const eventNames: Record<string, string> = {};
     if (eventIds.size > 0) {
-      // Firestore `in` query only supports 10 items.
-      // If many events, this is tricky.
-      // We'll fetch all needed events individually or via batches.
-      // For MVP, concurrent fetching.
-
-      const eventPromises = Array.from(eventIds).map(async (eid) => {
-        const doc = await db.collection("events").doc(eid).get();
-        if (doc.exists) {
-          return { id: eid, name: doc.data()?.name || "Unknown Event" };
-        }
-        return { id: eid, name: "Deleted Event" };
+      const events = await prisma.event.findMany({
+        where: {
+          id: { in: Array.from(eventIds) },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
       });
 
-      const events = await Promise.all(eventPromises);
       events.forEach((e) => (eventNames[e.id] = e.name));
     }
 
@@ -67,7 +64,7 @@ export async function GET() {
     const enrichedItems = lostItems.map((item) => ({
       ...item,
       eventName: item.details?.eventId
-        ? eventNames[item.details.eventId]
+        ? eventNames[item.details.eventId] || "Deleted/Unknown Event"
         : "N/A",
     }));
 

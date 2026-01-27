@@ -1,31 +1,22 @@
 import { redirect } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { checkPageAccess } from "@/lib/rbac-server";
 import { CaterersClient } from "./_components/caterers-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function CaterersPage() {
-    const session = await auth();
-    const user = session?.user as any;
-
-    if (!user || user.role !== "ADMIN") {
-        redirect("/unauthorized");
+    const hasAccess = await checkPageAccess("/settings/data"); // Using same permission scope as Venues
+    if (!hasAccess) {
+        redirect("/");
     }
 
     let caterers: any[] = [];
     try {
-        const snapshot = await db.collection("settings").doc("masterData").get();
-        if (snapshot.exists) {
-            const data = snapshot.data();
-            const rawCaterers = data?.caterers || [];
-
-            // Normalize data (handle legacy strings vs objects)
-            caterers = rawCaterers.map((c: any) => {
-                if (typeof c === "string") return { id: c, name: c, phone: "" }; // Legacy
-                return { id: c.id || c.name, name: c.name, phone: c.phone || "" };
-            });
-        }
+        const items = await prisma.caterer.findMany({
+            orderBy: { name: "asc" }
+        });
+        caterers = items;
     } catch (error) {
         console.error("Failed to fetch caterers:", error);
     }

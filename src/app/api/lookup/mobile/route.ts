@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -8,38 +8,28 @@ export async function GET(req: Request) {
   if (!mobile || mobile.length < 10) {
     return NextResponse.json(
       { error: "Invalid mobile number" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
-    // Search in 'events' collection for past bookings with this mobile
-    // Or 'users' if we store guests there.
-    // The requirement says "if user mobile number exists already, fetch the name".
-    // We'll search in 'events' for the most recent name associated with this mobile.
+    // Search in 'events'
+    const lastEvent = await prisma.event.findFirst({
+      where: { mobile },
+      orderBy: { createdAt: "desc" },
+    });
 
-    const eventsSnapshot = await db
-      .collection("events")
-      .where("mobile", "==", mobile)
-      .orderBy("createdAt", "desc")
-      .limit(1)
-      .get();
-
-    if (!eventsSnapshot.empty) {
-      const data = eventsSnapshot.docs[0].data();
-      return NextResponse.json({ name: data.name });
+    if (lastEvent) {
+      return NextResponse.json({ name: lastEvent.name });
     }
 
-    // Also check 'users' collection just in case
-    const usersSnapshot = await db
-      .collection("users")
-      .where("mobile", "==", mobile)
-      .limit(1)
-      .get();
+    // Check 'users'
+    const user = await prisma.user.findFirst({
+      where: { mobile },
+    });
 
-    if (!usersSnapshot.empty) {
-      const data = usersSnapshot.docs[0].data();
-      return NextResponse.json({ name: data.name });
+    if (user) {
+      return NextResponse.json({ name: user.name });
     }
 
     return NextResponse.json({ name: null });
@@ -47,7 +37,7 @@ export async function GET(req: Request) {
     console.error("Mobile lookup error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

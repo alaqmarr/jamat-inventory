@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
 export async function GET() {
@@ -9,15 +9,22 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const doc = await db.collection("settings").doc("masterData").get();
-    const data = doc.exists ? doc.data() : { halls: [], caterers: [] };
+    // Fetch halls and caterers from separate tables
+    const [halls, caterers] = await Promise.all([
+      prisma.hall.findMany({ orderBy: { name: "asc" } }),
+      prisma.caterer.findMany({ orderBy: { name: "asc" } }),
+    ]);
 
-    return NextResponse.json(data);
+    // Return in expected format for compatibility
+    return NextResponse.json({
+      halls: halls.map((h) => h.name),
+      caterers: caterers.map((c) => ({ name: c.name, phone: c.phone })),
+    });
   } catch (error) {
     console.error("Failed to fetch master data:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -30,38 +37,37 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { type, value } = body; // type: 'hall' | 'caterer', value: string
+    const { type, value } = body;
 
     if (!type || !value) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const docRef = db.collection("settings").doc("masterData");
-    const doc = await docRef.get();
-    const data = doc.exists ? doc.data() : { halls: [], caterers: [] };
-
-    let updates: any = {};
-
     if (type === "hall") {
-      const halls = data?.halls || [];
-      if (!halls.includes(value)) {
-        updates.halls = [...halls, value];
+      // value is a string (hall name)
+      const existing = await prisma.hall.findUnique({
+        where: { name: value },
+      });
+
+      if (!existing) {
+        await prisma.hall.create({
+          data: { name: value },
+        });
       }
     } else if (type === "caterer") {
-      const caterers = data?.caterers || [];
-      // Value is expected to be { name, phone }
-      const newCaterer = value;
-      const exists = caterers.some(
-        (c: any) => (typeof c === "string" ? c : c.name) === newCaterer.name
-      );
+      // value is { name, phone }
+      const existing = await prisma.caterer.findUnique({
+        where: { name: value.name },
+      });
 
-      if (!exists) {
-        updates.caterers = [...caterers, newCaterer];
+      if (!existing) {
+        await prisma.caterer.create({
+          data: {
+            name: value.name,
+            phone: value.phone || "",
+          },
+        });
       }
-    }
-
-    if (Object.keys(updates).length > 0) {
-      await docRef.set(updates, { merge: true });
     }
 
     return NextResponse.json({ success: true });
@@ -69,7 +75,7 @@ export async function POST(req: Request) {
     console.error("Failed to update master data:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -88,33 +94,22 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const docRef = db.collection("settings").doc("masterData");
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
-      return NextResponse.json({ success: true });
-    }
-
-    const data = doc.data();
-    let updates: any = {};
-
     if (type === "hall") {
-      updates.halls = (data?.halls || []).filter((h: string) => h !== value);
+      await prisma.hall.deleteMany({
+        where: { name: value },
+      });
     } else if (type === "caterer") {
-      // Value is the name of the caterer to remove
-      updates.caterers = (data?.caterers || []).filter(
-        (c: any) => (typeof c === "string" ? c : c.name) !== value
-      );
+      await prisma.caterer.deleteMany({
+        where: { name: value },
+      });
     }
-
-    await docRef.set(updates, { merge: true });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete master data:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

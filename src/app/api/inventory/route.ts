@@ -1,26 +1,41 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { InventoryItem } from "@/types";
+import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const snapshot = await db.collection("inventory").get();
-    const items = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as InventoryItem[];
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const items = await prisma.inventoryItem.findMany({
+      orderBy: { name: "asc" },
+    });
     return NextResponse.json(items);
   } catch (error) {
     console.error("Inventory fetch error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    const user = session?.user as any;
+    const role = user?.role;
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (role !== "ADMIN" && role !== "MANAGER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { name, category, totalQuantity, unit } = body;
 
@@ -28,25 +43,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const newItem: Omit<InventoryItem, "id"> = {
-      name,
-      category,
-      totalQuantity: Number(totalQuantity),
-      availableQuantity: Number(totalQuantity),
-      unit: unit || "pcs",
-    };
-
-    const docRef = await db.collection("inventory").add(newItem);
+    const newItem = await prisma.inventoryItem.create({
+      data: {
+        name,
+        category,
+        totalQuantity: Number(totalQuantity),
+        availableQuantity: Number(totalQuantity),
+        unit: unit || "pcs",
+      },
+    });
 
     // Send email to admins
     try {
-      const adminsSnapshot = await db
-        .collection("users")
-        .where("role", "==", "ADMIN")
-        .get();
-      const adminEmails = adminsSnapshot.docs
-        .map((doc) => doc.data().email)
-        .filter((email) => email);
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMIN" },
+        select: { email: true },
+      });
+      const adminEmails = admins
+        .map((a) => a.email)
+        .filter((email): email is string => !!email);
 
       if (adminEmails.length > 0) {
         const { newItemTemplate, sendEmail } = await import("@/lib/email");
@@ -58,7 +73,7 @@ export async function POST(req: Request) {
             category,
             quantity: Number(totalQuantity),
             unit: unit || "pcs",
-            userName: "Admin", // Ideally get from session
+            userName: "Admin",
           }),
         });
       }
@@ -66,12 +81,12 @@ export async function POST(req: Request) {
       console.error("Failed to send new item email:", emailError);
     }
 
-    return NextResponse.json({ id: docRef.id, ...newItem });
+    return NextResponse.json(newItem);
   } catch (error) {
     console.error("Inventory create error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

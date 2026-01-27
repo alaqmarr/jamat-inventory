@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { db } from "@/lib/firebase";
-import { User } from "@/types";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/db";
 import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -18,34 +18,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         const username = credentials.username as string;
+        const password = credentials.password as string;
 
         try {
-          const userSnapshot = await db
-            .collection("users")
-            .where("username", "==", username)
-            .limit(1)
-            .get();
+          // Find user by username using Prisma
+          const user = await prisma.user.findUnique({
+            where: { username },
+          });
 
-          if (userSnapshot.empty) {
+          if (!user) {
             return null;
           }
 
-          const userDoc = userSnapshot.docs[0];
-          const userData = userDoc.data() as User;
+          // Verify password - support both plain text (legacy) and hashed
+          let isValidPassword = false;
 
-          // Verify password
-          if ((userData as any).password !== credentials.password) {
+          // Check if password is hashed (bcrypt hashes start with $2)
+          if (user.password.startsWith("$2")) {
+            isValidPassword = await bcrypt.compare(password, user.password);
+          } else {
+            // Legacy plain text comparison (for migration period)
+            isValidPassword = user.password === password;
+          }
+
+          if (!isValidPassword) {
             return null;
           }
 
           return {
-            id: userDoc.id,
-            email: userData.email,
-            name: userData.name || userData.username,
-            username: userData.username,
-            role: userData.role,
-            profileStatus: userData.profileStatus,
-            mobile: userData.mobile,
+            id: user.id,
+            email: user.email,
+            name: user.name || user.username,
+            username: user.username,
+            role: user.role,
+            profileStatus: user.profileStatus,
+            mobile: user.mobile,
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -59,6 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account }) {
       if (account?.provider === "credentials" && user) {
         try {
+          // Keep logging via Firebase RTDB for real-time updates
           const { logAction } = await import("@/lib/logger");
           await logAction(
             "USER_LOGIN",

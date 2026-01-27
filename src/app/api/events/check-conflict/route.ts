@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { db, rtdb } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
+import { rtdb } from "@/lib/firebase";
 import { Event } from "@/types";
 
 export async function POST(req: Request) {
@@ -11,29 +12,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    // 1. Get Config & Master Data
-    const [configSnapshot, masterDataDoc] = await Promise.all([
+    // 1. Get Config & Halls
+    const [configSnapshot, halls] = await Promise.all([
       rtdb.ref("config/bookingWindow").once("value"),
-      db.collection("settings").doc("masterData").get(),
+      prisma.hall.findMany({ select: { name: true } }),
     ]);
 
     // Default duration window (length of event) - default 60 mins if not set
-    // Note: This is the assumed DURATION of the event itself.
     const eventDurationMinutes = configSnapshot.val() || 60;
 
     // Requested Buffer Time (2 Hours before event)
     const BUFFER_MINUTES = 120;
 
     // Get All Halls
-    const masterData = masterDataDoc.exists
-      ? masterDataDoc.data()
-      : { halls: [] };
-    const allHalls: string[] = masterData?.halls || [
-      "Maimoon Hall",
-      "Qutbi Hall",
-      "Fakhri Hall",
-      "Najmi Hall",
-    ];
+    const allHalls = halls.map((h) => h.name);
+    if (allHalls.length === 0) {
+      // Fallback defaults if DB empty? Or just empty.
+      // allHalls.push("Maimoon Hall", "Qutbi Hall"...);
+    }
 
     // 2. Parse Proposed Time
     const proposedDate = new Date(occasionDate);
@@ -51,23 +47,26 @@ export async function POST(req: Request) {
     );
 
     // 3. Query Events for the same day (and previous day to catch adjacent buffer overlaps)
-    // To be safe, look at a wider range.
-    // If I start at 00:30, 2h buffer starts previous day 22:30.
     const queryStart = new Date(proposedEffectiveStart);
-    queryStart.setHours(0, 0, 0, 0); // Start of effective day (or just day of buffer start)
+    queryStart.setHours(0, 0, 0, 0);
 
     const queryEnd = new Date(proposedEnd);
     queryEnd.setHours(23, 59, 59, 999);
 
-    const snapshot = await db
-      .collection("events")
-      .where("occasionDate", ">=", queryStart.toISOString()) // Approximate query, refining in-memory
-      .get();
-
-    const events = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Event[];
+    const events = await prisma.event.findMany({
+      where: {
+        // Overlapping day check is tricky with strict dates, but "occasionDate" stores the date part usually.
+        // If occasionDate is stored as DateTime, we range check it.
+        occasionDate: {
+          gte: queryStart,
+          lte: queryEnd,
+        },
+        status: { not: "CANCELLED" },
+        // Note: occasionDate might just be 00:00:00 of the day.
+        // The TIME is stored in occasionTime string.
+        // So we rely on fetching all events for the day and parsing strings in JS loop below.
+      },
+    });
 
     // 4. Check Conflicts
     let conflictType: "none" | "hard" | "soft" = "none";
@@ -77,8 +76,6 @@ export async function POST(req: Request) {
     const occupiedHalls = new Set<string>();
 
     for (const event of events) {
-      if (event.status === "CANCELLED") continue;
-
       // Parse Existing Event Time
       const eventDate = new Date(event.occasionDate);
       const [eHours, eMinutes] = event.occasionTime.split(":").map(Number);
@@ -96,29 +93,10 @@ export async function POST(req: Request) {
       );
 
       // --- CHECK 1: HARD CONFLICT (Actual Event Overlap) ---
-      // (StartA < EndB) and (EndA > StartB)
       const isHardOverlap =
         proposedStart < eventEnd && proposedEnd > eventStart;
 
       // --- CHECK 2: BUFFER CONFLICT (Overlap including buffers) ---
-      // We check if the occupied time (including buffer) overlaps.
-      // Logic:
-      // A collision occurs if the "Exclusive Zone" of one event overlaps with the "Exclusive Zone" of another.
-      // Exclusive Zone = [Start - 2h, End] (assuming buffer is pre-event exclusive)
-      // Wait, usually buffer means "Time needed to prepare".
-      // So if Event A is [14:00, 16:00], it needs [12:00, 14:00] for prep.
-      // If Event B is [13:00, 15:00], it needs [11:00, 13:00] for prep.
-      // Do they clash?
-      // B needs Hall at 11:00. A needs Hall at 12:00.
-      // A's event starts 14:00.
-      // B's event is running [13:00, 15:00] (Actual).
-      // A needs prep at 12:00-14:00.
-      // B occupies 13:00-15:00. They OVERLAP in [13:00, 14:00].
-
-      // So yes, we check overlap of [Start - Buffer, End] vs [Start - Buffer, End].
-      // Actually, stricter: The "Footprint" of an event is [Start-Buffer, End].
-      // If Footprints overlap, it's a conflict.
-
       const isBufferOverlap =
         proposedEffectiveStart < eventEnd && proposedEnd > eventEffectiveStart;
 
@@ -141,8 +119,6 @@ export async function POST(req: Request) {
             // Actual Event Overlap -> HARD
             conflictType = "hard";
             conflictMessage = `HARD CONFLICT: ${commonHalls.join(", ")} is booked by "${event.name}" (${event.occasionTime}).`;
-            // We can break on hard conflict usually, but let's gather all occupied halls first?
-            // Actually usually hard conflict stops the flow.
           } else {
             // Buffer Only Overlap -> SOFT
             if (conflictType !== "hard") {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db, rtdb } from "@/lib/firebase";
+import { rtdb } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import * as XLSX from "xlsx";
 
 export async function GET(req: Request) {
@@ -16,12 +17,6 @@ export async function GET(req: Request) {
     const format = searchParams.get("format") || "json"; // json, excel
 
     const data: any = {};
-
-    // Helper to fetch collection
-    const fetchCollection = async (col: string) => {
-      const snap = await db.collection(col).get();
-      return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    };
 
     // Helper to fetch RTDB logs
     const fetchLogs = async (filterForLedger = false) => {
@@ -48,13 +43,13 @@ export async function GET(req: Request) {
 
     // Fetch Data based on type
     if (type === "users" || type === "master") {
-      data.users = await fetchCollection("users");
+      data.users = await prisma.user.findMany();
     }
     if (type === "events" || type === "master") {
-      data.events = await fetchCollection("events");
+      data.events = await prisma.event.findMany();
     }
     if (type === "inventory" || type === "master") {
-      data.inventory = await fetchCollection("inventory");
+      data.inventory = await prisma.inventoryItem.findMany();
     }
     if (type === "logs" || type === "master") {
       data.logs = await fetchLogs(false);
@@ -63,11 +58,14 @@ export async function GET(req: Request) {
       data.ledger = await fetchLogs(true);
     }
     if (type === "settings" || type === "master") {
-      const settingsSnap = await db
-        .collection("settings")
-        .doc("masterData")
-        .get();
-      data.settings = settingsSnap.exists ? settingsSnap.data() : {};
+      const [halls, caterers] = await Promise.all([
+        prisma.hall.findMany(),
+        prisma.caterer.findMany(),
+      ]);
+      data.settings = {
+        halls: halls.map((h) => h.name),
+        caterers: caterers.map((c) => ({ name: c.name, phone: c.phone })),
+      };
     }
 
     // Return JSON
@@ -86,8 +84,7 @@ export async function GET(req: Request) {
 
       Object.keys(data).forEach((key) => {
         const sheetData = Array.isArray(data[key]) ? data[key] : [data[key]];
-        // Flatten objects for Excel if needed, but XLSX handles basic objects well.
-        // For nested objects (like arrays in events), we might want to stringify them.
+        // Flatten objects for Excel if needed
         const cleanedData = sheetData.map((item: any) => {
           const newItem = { ...item };
           Object.keys(newItem).forEach((k) => {
@@ -118,7 +115,7 @@ export async function GET(req: Request) {
     console.error("Export failed:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

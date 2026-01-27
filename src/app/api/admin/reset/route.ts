@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { db, rtdb, auth as adminAuth } from "@/lib/firebase";
+import { rtdb } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
 export async function POST(req: Request) {
@@ -18,30 +19,27 @@ export async function POST(req: Request) {
     }
 
     // 1. Delete All Events
-    const eventsSnapshot = await db.collection("events").get();
-    const eventBatch = db.batch();
-    eventsSnapshot.docs.forEach((doc) => {
-      eventBatch.delete(doc.ref);
-    });
-    await eventBatch.commit();
+    await prisma.event.deleteMany({});
 
     // 2. Delete All Inventory
-    const inventorySnapshot = await db.collection("inventory").get();
-    const inventoryBatch = db.batch();
-    inventorySnapshot.docs.forEach((doc) => {
-      inventoryBatch.delete(doc.ref);
-    });
-    await inventoryBatch.commit();
+    await prisma.inventoryItem.deleteMany({});
 
     // 3. Delete All Users (Except Current Admin)
-    const usersSnapshot = await db.collection("users").get();
-    const usersBatch = db.batch();
-    usersSnapshot.docs.forEach((doc) => {
-      if (doc.id !== currentUserId) {
-        usersBatch.delete(doc.ref);
-      }
+    await prisma.user.deleteMany({
+      where: {
+        id: {
+          not: currentUserId,
+        },
+      },
     });
-    await usersBatch.commit();
+
+    // 3b. Delete Settings (Halls/Caterers) - Reset to clean state?
+    // Maybe keep them? The original implementation didn't seem to reset settings explicitly
+    // but the restore function overwrites them.
+    // Let's assume reset wipes core data but settings might ideally stay?
+    // Original code: Didn't explicitly delete "settings" collection in the reset script shown above (lines 20-45).
+    // It only deleted events, inventory, and users.
+    // So I will stick to that.
 
     // 4. Wipe RTDB Logs
     await rtdb.ref("logs").remove();
@@ -55,7 +53,7 @@ export async function POST(req: Request) {
     console.error("System reset failed:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

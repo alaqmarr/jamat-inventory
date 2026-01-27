@@ -1,9 +1,13 @@
-import { requireAccess } from "@/lib/rbac";
+import { redirect } from "next/navigation";
+import { checkPageAccess } from "@/lib/rbac-server";
 import LostItemsClient from "./_components/lost-items-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function LostItemsPage() {
-    await requireAccess("/lost-items");
+    const hasAccess = await checkPageAccess("/lost-items");
+    if (!hasAccess) {
+        redirect("/");
+    }
     return <LostItemsClient />;
 }

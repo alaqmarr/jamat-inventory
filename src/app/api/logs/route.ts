@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import { rtdb } from "@/lib/firebase";
 
+import { auth } from "@/lib/auth";
+import { Role } from "@/generated/prisma/client";
+
 export async function GET() {
   try {
+    const session = await auth();
+    const role = (session?.user as any)?.role as Role;
+
+    if (role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const snapshot = await rtdb
       .ref("logs")
       .orderByChild("timestamp")
@@ -22,7 +32,7 @@ export async function GET() {
     console.error("Error fetching system logs:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

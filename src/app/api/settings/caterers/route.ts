@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { v4 as uuidv4 } from "uuid";
-
-const MASTER_DOC = "masterData";
 
 export async function GET() {
   try {
@@ -12,24 +9,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const doc = await db.collection("settings").doc(MASTER_DOC).get();
-    const data = doc.exists ? doc.data() : {};
-    const caterers = data?.caterers || [];
-
-    // Normalize caterers (some might be strings, others objects)
-    const normalized = caterers.map((c: any) => {
-      if (typeof c === "string") {
-        return { id: c, name: c, phone: "", isLegacy: true };
-      }
-      return {
-        id: c.id || c.name, // Fallback ID
-        name: c.name,
-        phone: c.phone || "",
-        ...c,
-      };
+    const caterers = await prisma.caterer.findMany({
+      orderBy: { name: "asc" },
     });
 
-    return NextResponse.json(normalized);
+    return NextResponse.json(caterers);
   } catch (error) {
     console.error("Caterers GET Error:", error);
     return NextResponse.json(
@@ -53,20 +37,11 @@ export async function POST(req: Request) {
     if (!name?.trim())
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
-    const newItem = {
-      id: uuidv4(),
-      name: name.trim(),
-      phone: phone?.trim() || "",
-      createdAt: new Date().toISOString(),
-    };
-
-    await db.runTransaction(async (t) => {
-      const docRef = db.collection("settings").doc(MASTER_DOC);
-      const doc = await t.get(docRef);
-      const data = doc.exists ? doc.data() : {};
-      const caterers = data?.caterers || [];
-
-      t.set(docRef, { caterers: [...caterers, newItem] }, { merge: true });
+    const newItem = await prisma.caterer.create({
+      data: {
+        name: name.trim(),
+        phone: phone?.trim() || "",
+      },
     });
 
     return NextResponse.json(newItem);
@@ -93,33 +68,12 @@ export async function PUT(req: Request) {
     if (!id || !name?.trim())
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
 
-    await db.runTransaction(async (t) => {
-      const docRef = db.collection("settings").doc(MASTER_DOC);
-      const doc = await t.get(docRef);
-      const data = doc.exists ? doc.data() : {};
-      const caterers = data?.caterers || [];
-
-      const index = caterers.findIndex(
-        (c: any) =>
-          (typeof c === "string" && c === id) ||
-          (typeof c === "object" && (c.id === id || c.name === id)),
-      );
-
-      if (index === -1) throw new Error("Caterer not found");
-
-      const existing = caterers[index];
-      const isLegacy = typeof existing === "string";
-
-      const updatedItem = {
-        id: isLegacy ? uuidv4() : existing.id,
+    await prisma.caterer.update({
+      where: { id },
+      data: {
         name: name.trim(),
-        phone: phone?.trim() || "", // Allow clearing phone
-        updatedAt: new Date().toISOString(),
-      };
-
-      caterers[index] = updatedItem;
-
-      t.update(docRef, { caterers });
+        phone: phone?.trim() || "",
+      },
     });
 
     return NextResponse.json({ success: true });
@@ -144,17 +98,8 @@ export async function DELETE(req: Request) {
 
     const { id } = await req.json();
 
-    await db.runTransaction(async (t) => {
-      const docRef = db.collection("settings").doc(MASTER_DOC);
-      const doc = await t.get(docRef);
-      const data = doc.exists ? doc.data() : {};
-      const caterers = data?.caterers || [];
-
-      const filtered = caterers.filter((c: any) =>
-        typeof c === "string" ? c !== id : c.id !== id,
-      );
-
-      t.update(docRef, { caterers: filtered });
+    await prisma.caterer.delete({
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/firebase";
+import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import ProfileClient from "./_components/profile-client";
 
@@ -13,8 +13,6 @@ export default async function ProfilePage() {
     }
 
     const userId = (session.user as any).id;
-
-    // Fetch full user data from Firestore
     let userData = {
         id: userId,
         name: session.user.name || "",
@@ -25,16 +23,18 @@ export default async function ProfilePage() {
     };
 
     try {
-        const userDoc = await db.collection("users").doc(userId).get();
-        if (userDoc.exists) {
-            const data = userDoc.data();
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (user) {
             userData = {
-                id: userId,
-                name: data?.name || session.user.name || "",
-                email: data?.email || session.user.email || "",
-                mobile: data?.mobile || "",
-                username: data?.username || "",
-                role: data?.role || "Member",
+                id: user.id,
+                name: user.name || "",
+                email: user.email || "",
+                mobile: user.mobile || "",
+                username: user.username,
+                role: user.role,
             };
         }
     } catch (error) {
