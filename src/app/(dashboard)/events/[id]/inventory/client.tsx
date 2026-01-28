@@ -156,12 +156,7 @@ export default function EventInventoryClient() {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.category.toLowerCase().includes(searchTerm.toLowerCase());
 
-        // If searching, show all matches. If not searching, show only active items.
-        if (searchTerm) return matchesSearch;
-
-        const stats = itemStats.get(item.id);
-        const hasActivity = (stats?.issued || 0) > 0 || (stats?.returned || 0) > 0 || (stats?.lost || 0) > 0;
-        return hasActivity;
+        return matchesSearch;
     });
 
     if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600 w-8 h-8" /></div>;

@@ -12,6 +12,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
+    // Bypass check for specific "virtual" locations where conflicts don't matter
+    const bypassHalls = ["na", "others", "house", "self"];
+    const hallsToCheck = Array.isArray(hall) ? hall : [hall]; // Ensure array
+    const isBypassHall = hallsToCheck.some((h) =>
+      bypassHalls.includes(h.toLowerCase().trim()),
+    );
+
+    if (isBypassHall) {
+      return NextResponse.json({
+        conflictType: "none",
+        conflictMessage: "",
+        occupiedHalls: [],
+        availableHalls: [],
+      });
+    }
+
     // 1. Get Config & Halls
     const [configSnapshot, halls] = await Promise.all([
       rtdb.ref("config/bookingWindow").once("value"),

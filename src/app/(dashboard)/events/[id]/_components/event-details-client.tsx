@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Loader2, Edit, Printer, Package, ArrowLeft, FileText, Trash2, Calendar, Phone, MapPin, ChefHat, AlertTriangle, Copy } from "lucide-react";
+import { Loader2, Edit, Printer, Package, ArrowLeft, FileText, Trash2, Calendar, Phone, MapPin, ChefHat, AlertTriangle, Copy, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Event, InventoryItem } from "@/types";
 import { useSession } from "next-auth/react";
 import { RBACWrapper } from "@/components/rbac-wrapper";
@@ -20,15 +21,17 @@ interface EventDetailsClientProps {
     initialEvent: Event;
     initialInventory: InventoryItem[];
     initialLogs: any[];
+    initialHijriDate?: string | null;
 }
 
-export default function EventDetailsClient({ initialEvent, initialInventory, initialLogs }: EventDetailsClientProps) {
+export default function EventDetailsClient({ initialEvent, initialInventory, initialLogs, initialHijriDate }: EventDetailsClientProps) {
     const router = useRouter();
     const { data: session } = useSession();
 
     const [event, setEvent] = useState<Event>(initialEvent);
     const [inventory] = useState<InventoryItem[]>(initialInventory);
     const [logs] = useState<any[]>(initialLogs);
+    const [hijriDate] = useState<string | null>(initialHijriDate || null);
 
     const getItemStats = (itemId: string) => {
         const itemLogs = logs.filter(log => (log.itemId === itemId) || (log.details?.itemId === itemId));
@@ -101,10 +104,10 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
     const isCancelled = event.status === "CANCELLED";
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto p-6 md:p-8 animate-in fade-in duration-500 pb-20">
+        <div className="space-y-6 md:space-y-8 max-w-7xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 pb-24 md:pb-20">
             {/* Page Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
                     <Button
                         variant="outline"
                         size="icon"
@@ -113,61 +116,110 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     >
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-bold tracking-tight text-foreground">{event.name}</h1>
+                    <div className="flex-1 md:flex-none">
+                        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground line-clamp-1">{event.name}</h1>
                             {isCancelled && <Badge variant="destructive" className="h-6">CANCELLED</Badge>}
                         </div>
-                        <div className="text-muted-foreground mt-1 flex items-center gap-2 text-sm">
+                        <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
                             <Calendar className="h-3.5 w-3.5" />
                             {format(new Date(event.occasionDate), "PPP")} at {event.occasionTime}
-                            {/* <span className="w-1 h-1 rounded-full bg-slate-300" />
-                             {event.description} */}
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" onClick={() => router.push(`/events/${event.id}/print`)}>
-                        <Printer className="mr-2 h-4 w-4" /> Print
-                    </Button>
-                    <Button variant="outline" onClick={() => generateEventManifest(event, logs)}>
-                        <FileText className="mr-2 h-4 w-4" /> Manifest
-                    </Button>
-                    <QRDialog eventId={event.id} eventName={event.name} />
-                    <RBACWrapper componentId="btn-event-edit">
+                {/* Actions: Desktop vs Mobile */}
+                <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                    {/* Mobile: Manage Inventory takes full width, Menu for others */}
+                    <div className="md:hidden flex flex-1 gap-2">
                         <Button
-                            variant="outline"
-                            onClick={() => router.push(`/events/new?fromId=${event.id}`)}
-                        >
-                            <Copy className="mr-2 h-4 w-4" /> Clone
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => router.push(`/events/${event.id}/edit`)}
+                            onClick={() => router.push(`/events/${event.id}/inventory`)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1"
                             disabled={isCancelled}
                         >
-                            <Edit className="mr-2 h-4 w-4" /> Edit
+                            <Package className="mr-2 h-4 w-4" /> Manage Inv.
                         </Button>
-                    </RBACWrapper>
-                    <Button
-                        onClick={() => router.push(`/events/${event.id}/inventory`)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        disabled={isCancelled}
-                    >
-                        <Package className="mr-2 h-4 w-4" /> Manage Inventory
-                    </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="icon">
+                                    <MoreVertical className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => router.push(`/events/${event.id}/print`)}>
+                                    <Printer className="mr-2 h-4 w-4" /> Print View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => generateEventManifest(event, logs)}>
+                                    <FileText className="mr-2 h-4 w-4" /> Manifest PDF
+                                </DropdownMenuItem>
 
-                    <RBACWrapper componentId="btn-event-delete">
-                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteEvent(false)}>
-                            <Trash2 className="h-5 w-5" />
+                                <RBACWrapper componentId="menu-clone">
+                                    <DropdownMenuItem onClick={() => router.push(`/events/new?fromId=${event.id}`)}>
+                                        <Copy className="mr-2 h-4 w-4" /> Clone Event
+                                    </DropdownMenuItem>
+                                </RBACWrapper>
+
+                                <RBACWrapper componentId="menu-edit">
+                                    <DropdownMenuItem onClick={() => router.push(`/events/${event.id}/edit`)} disabled={isCancelled}>
+                                        <Edit className="mr-2 h-4 w-4" /> Edit Details
+                                    </DropdownMenuItem>
+                                </RBACWrapper>
+
+                                <RBACWrapper componentId="menu-delete">
+                                    <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => handleDeleteEvent(false)}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete Event
+                                    </DropdownMenuItem>
+                                </RBACWrapper>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <div className="hidden">
+                            <QRDialog eventId={event.id} eventName={event.name} />
+                        </div>
+                    </div>
+
+                    {/* Desktop: Full Buttons */}
+                    <div className="hidden md:flex flex-wrap items-center gap-2">
+                        <Button variant="outline" onClick={() => router.push(`/events/${event.id}/print`)}>
+                            <Printer className="mr-2 h-4 w-4" /> Print
                         </Button>
-                    </RBACWrapper>
+                        <Button variant="outline" onClick={() => generateEventManifest(event, logs)}>
+                            <FileText className="mr-2 h-4 w-4" /> Manifest
+                        </Button>
+                        <QRDialog eventId={event.id} eventName={event.name} />
+                        <RBACWrapper componentId="btn-event-edit">
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push(`/events/new?fromId=${event.id}`)}
+                            >
+                                <Copy className="mr-2 h-4 w-4" /> Clone
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push(`/events/${event.id}/edit`)}
+                                disabled={isCancelled}
+                            >
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                            </Button>
+                        </RBACWrapper>
+                        <Button
+                            onClick={() => router.push(`/events/${event.id}/inventory`)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            disabled={isCancelled}
+                        >
+                            <Package className="mr-2 h-4 w-4" /> Manage Inventory
+                        </Button>
+
+                        <RBACWrapper componentId="btn-event-delete">
+                            <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteEvent(false)}>
+                                <Trash2 className="h-5 w-5" />
+                            </Button>
+                        </RBACWrapper>
+                    </div>
                 </div>
             </div>
 
             {/* Event Stepper */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
                 <div className="mb-4">
                     <h2 className="text-base font-semibold text-slate-800">Event Progress</h2>
                 </div>
@@ -250,10 +302,10 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                 <div className="md:col-span-8 space-y-8">
                     {/* Event Meta Card */}
                     <Card className="shadow-sm border-slate-200">
-                        <CardHeader className="pb-4 px-6 pt-6">
+                        <CardHeader className="pb-4 px-4 md:px-6 pt-6">
                             <CardTitle className="text-lg">Event Information</CardTitle>
                         </CardHeader>
-                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-8 px-6 pb-8">
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 px-4 md:px-6 pb-8">
                             <div className="flex gap-4">
                                 <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
                                     <Phone className="h-5 w-5 text-slate-500" />
@@ -281,7 +333,7 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                         <p className="text-sm font-medium text-slate-500">Caterer</p>
                                         <p className="font-semibold text-lg">{event.catererName} <span className="text-slate-400 text-base font-normal">({event.catererPhone})</span></p>
                                     </div>
-                                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
+                                    <div className="bg-slate-50 p-4 md:p-5 rounded-xl border border-slate-100">
                                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Menu selection</p>
                                         <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{event.menu || "No menu specified for this event."}</p>
                                     </div>
@@ -292,14 +344,14 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
 
                     {/* Inventory Table */}
                     <Card className="shadow-sm border-slate-200">
-                        <CardHeader className="px-6 pt-6 pb-4 md:px-8">
-                            <CardTitle className="text-lg flex items-center justify-between">
+                        <CardHeader className="px-4 md:px-6 pt-6 pb-4 md:px-8">
+                            <CardTitle className="text-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 Inventory Reconciliation
-                                <Badge variant="outline" className="ml-2 font-normal">{usedInventory.length} items used</Badge>
+                                <Badge variant="outline" className="w-fit font-normal">{usedInventory.length} items used</Badge>
                             </CardTitle>
                             <CardDescription>Track items issued, returned, and lost for this event.</CardDescription>
                         </CardHeader>
-                        <CardContent className="px-6 pb-8 md:px-8">
+                        <CardContent className="px-4 md:px-8 pb-8">
                             {usedInventory.length === 0 ? (
                                 <div className="text-center py-12 text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
                                     <Package className="h-10 w-10 mx-auto mb-3 opacity-20" />
@@ -311,15 +363,15 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                     )}
                                 </div>
                             ) : (
-                                <div className="rounded-md border overflow-hidden">
+                                <div className="rounded-md border overflow-x-auto">
                                     <Table>
                                         <TableHeader className="bg-slate-50">
                                             <TableRow>
-                                                <TableHead>Item Name</TableHead>
+                                                <TableHead className="min-w-[150px]">Item Name</TableHead>
                                                 <TableHead className="text-center">Issued</TableHead>
                                                 <TableHead className="text-center">Returned</TableHead>
                                                 <TableHead className="text-center">Lost</TableHead>
-                                                <TableHead className="text-right">Status</TableHead>
+                                                <TableHead className="text-right min-w-[120px]">Status</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -331,7 +383,9 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
 
                                                 return (
                                                     <TableRow key={item.id}>
-                                                        <TableCell className="font-medium">{item.name}</TableCell>
+                                                        <TableCell className="font-medium">
+                                                            <div className="line-clamp-2" title={item.name}>{item.name}</div>
+                                                        </TableCell>
                                                         <TableCell className="text-center">{stats.issued}</TableCell>
                                                         <TableCell className="text-center">{stats.returned}</TableCell>
                                                         <TableCell className={`text-center ${stats.lost > 0 ? "text-red-600 font-bold" : "text-slate-400"}`}>{stats.lost || "-"}</TableCell>
@@ -370,6 +424,22 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                 <div className="flex justify-between items-baseline">
                                     <span className="text-sm font-medium text-slate-500 uppercase tracking-wide">Thaal Count</span>
                                     <span className="text-4xl font-bold text-slate-900">{event.thaalCount}</span>
+                                </div>
+                                <Separator />
+                                <div className="flex justify-between items-baseline pt-4 border-t border-slate-100">
+                                    <span className="text-xs font-semibold text-slate-500 uppercase">Occasion & Timeline</span>
+                                    <div className="text-right">
+                                        <span className="text-sm font-bold text-slate-900 block">{event.description}</span>
+                                        <span className="text-xs text-slate-500 block mt-0.5">{format(new Date(event.occasionDate), "PPP")}</span>
+                                        <span className="text-xs font-medium text-emerald-600 block mt-0.5 flex flex-col gap-0.5 items-end">
+                                            {hijriDate ? (
+                                                <>
+                                                    <span>{hijriDate.split("/")[0]}</span>
+                                                    <span className="font-arabic text-emerald-700 text-lg">{hijriDate.split("/")[1]}</span>
+                                                </>
+                                            ) : "-"}
+                                        </span>
+                                    </div>
                                 </div>
                                 <Separator />
                                 <div className="grid grid-cols-2 gap-6">

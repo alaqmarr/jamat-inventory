@@ -160,3 +160,14 @@
   }
 }
 
+@font-face {
+  font-family: 'KanzMarjaan';
+  src: url('/kanz-marjaan.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-arabic {
+  font-family: 'KanzMarjaan', sans-serif !important;
+}

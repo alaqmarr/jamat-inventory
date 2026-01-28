@@ -42,12 +42,15 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface DashboardClientProps {
     initialEvents: Event[];
+    todayHijri?: string | null;
+    currentDate?: Date;
 }
 
-export default function DashboardClient({ initialEvents }: DashboardClientProps) {
+export default function DashboardClient({ initialEvents, todayHijri, currentDate }: DashboardClientProps) {
     const router = useRouter();
     const { data: session } = useSession();
-    const [date, setDate] = useState<Date | undefined>(new Date());
+    // Use the passed currentDate (which reflects server time/URL param) or fallback to browser's today
+    const [date, setDate] = useState<Date | undefined>(currentDate || new Date());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     const [events, setEvents] = useState<Event[]>(initialEvents);
@@ -57,12 +60,21 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
         setEvents(initialEvents);
     }, [initialEvents]);
 
+    // Sync date from server if it changes (e.g. initial load or subsequent navigation)
+    useEffect(() => {
+        if (currentDate) {
+            setDate(currentDate);
+        }
+    }, [currentDate]);
+
     // Update URL when date changes to trigger SSR refetch
     const handleDateChange = (newDate: Date | undefined) => {
-        setDate(newDate);
+        setDate(newDate); // Optimistic update
         setIsCalendarOpen(false);
         if (newDate) {
-            router.push(`/?date=${newDate.toISOString()}`);
+            // Use YYYY-MM-DD to avoid timezone shifts when ISO string is parsed on server
+            const dateStr = format(newDate, "yyyy-MM-dd");
+            router.push(`/?date=${dateStr}`);
         } else {
             router.push("/");
         }
@@ -145,6 +157,13 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
                     <p className="text-slate-500 mt-1">
                         Overview for <span className="font-semibold text-slate-900">{date ? format(date, "MMMM do, yyyy") : "Today"}</span>
                     </p>
+                    {todayHijri && (
+                        <div className="text-sm font-medium text-emerald-600 mt-1 flex items-center gap-2">
+                            <span>{todayHijri.split("/")[0]}</span>
+                            <span className="text-slate-300">|</span>
+                            <span className="font-arabic text-emerald-700">{todayHijri.split("/")[1]}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -322,7 +341,7 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
                         <Calendar
                             mode="single"
                             selected={date}
-                            onSelect={(d) => d && setDate(d)}
+                            onSelect={handleDateChange}
                             className="w-full"
                             locale={enGB}
                             classNames={{

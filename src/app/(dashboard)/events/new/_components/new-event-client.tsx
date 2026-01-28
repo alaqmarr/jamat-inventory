@@ -119,6 +119,8 @@ export default function NewEventPage() {
     const [status, setStatus] = useState<"idle" | "creating" | "success" | "error">("idle");
     const [statusMessage, setStatusMessage] = useState("");
     const [countdown, setCountdown] = useState(3);
+    const [hijriDate, setHijriDate] = useState<string | null>(null);
+    const [isLoadingHijri, setIsLoadingHijri] = useState(false);
 
     // Master Data
     const [availableHalls, setAvailableHalls] = useState<string[]>([]);
@@ -228,6 +230,31 @@ export default function NewEventPage() {
     const watchedDate = form.watch("occasionDate");
     const watchedTime = form.watch("occasionTime");
     const watchedHall = form.watch("hall");
+
+    // Watch for date changes to fetch Hijri date
+    const occasionDate = form.watch("occasionDate");
+    useEffect(() => {
+        if (occasionDate) {
+            setIsLoadingHijri(true);
+            const dateStr = format(occasionDate, "yyyy-MM-dd");
+            fetch(`/api/services/hijri-date?date=${dateStr}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.hijri) {
+                        setHijriDate(`${data.hijri} / ${data.arabic}`);
+                    } else {
+                        setHijriDate(null);
+                    }
+                })
+                .catch(e => {
+                    console.error("Hijri fetch failed", e);
+                    setHijriDate(null);
+                })
+                .finally(() => setIsLoadingHijri(false));
+        } else {
+            setHijriDate(null);
+        }
+    }, [occasionDate]);
 
     useEffect(() => {
         const checkRealtimeConflict = async () => {
@@ -532,6 +559,23 @@ export default function NewEventPage() {
                                                 <FormMessage />
                                             </FormItem>
                                         )} />
+                                        {/* Hijri Date Display */}
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-500 flex items-center gap-2">
+                                                Hijri Date (Auto-detected)
+                                                {isLoadingHijri && <Loader2 className="h-3 w-3 animate-spin text-emerald-600" />}
+                                            </label>
+                                            <div className="relative">
+                                                <Input
+                                                    disabled
+                                                    value={isLoadingHijri ? "Fetching date..." : (hijriDate || "Select a date...")}
+                                                    className={cn(
+                                                        "bg-slate-50 font-medium text-emerald-700 font-arabic transition-opacity",
+                                                        isLoadingHijri && "opacity-70"
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <FormField control={form.control} name="description" render={({ field }) => (

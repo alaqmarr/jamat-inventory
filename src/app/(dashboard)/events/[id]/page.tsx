@@ -4,6 +4,7 @@ import { getCurrentRole } from "@/lib/rbac-server";
 import { Event, InventoryItem } from "@/types";
 import EventDetailsClient from "./_components/event-details-client";
 import { rtdb } from "@/lib/firebase"; // Keep RTDB for logs if available there
+import { getMisriDate } from "@/lib/misri-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -54,13 +55,31 @@ export default async function EventDetailsPage({ params }: PageProps) {
             safeLogs.push({ id: child.key, ...child.val() });
         });
         // Sort by timestamp desc
+        // Sort by timestamp desc
         safeLogs.sort((a, b) => b.timestamp - a.timestamp);
+
+        // Fetch Hijri Date (Server Side) Algorithmic
+        let hijriString = null;
+        try {
+            // Create a date object from the event date string
+            const d = new Date(safeEvent.occasionDate);
+            // Verify if we need timezone adjustment?
+            // Usually occasionDate is stored as UTC.
+            // If we just pass it to getMisriDate, it uses the UTC date components.
+            // This matches the behavior in DashboardPage where we used Noon UTC.
+
+            const hijriData = getMisriDate(d);
+            hijriString = `${hijriData.formattedEn} / ${hijriData.formattedAr}`;
+        } catch (e) {
+            console.error("Hijri calc failed", e);
+        }
 
         return (
             <EventDetailsClient
                 initialEvent={safeEvent}
                 initialInventory={safeInventory}
                 initialLogs={safeLogs}
+                initialHijriDate={hijriString}
             />
         );
     } catch (error) {
