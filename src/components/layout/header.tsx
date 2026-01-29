@@ -1,6 +1,5 @@
 "use client";
 
-import { useRole } from "@/hooks/use-role";
 import { Bell, Search, Settings, LogOut, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,10 +14,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { Role } from "@/types";
 
-export function Header() {
-    const { role, user } = useRole();
+interface HeaderProps {
+    user?: {
+        name?: string | null;
+        email?: string | null;
+        image?: string | null;
+    };
+    role?: Role;
+}
+
+export function Header({ user, role }: HeaderProps) {
     const router = useRouter();
 
     const handleLogout = () => {
@@ -70,7 +77,7 @@ export function Header() {
                             <div className="flex flex-col space-y-1">
                                 <p className="text-sm font-medium leading-none">{user?.name}</p>
                                 <p className="text-xs leading-none text-muted-foreground">
-                                    {role}
+                                    {role || "Member"}
                                 </p>
                             </div>
                         </DropdownMenuLabel>

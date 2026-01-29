@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getCurrentRole } from "@/lib/rbac-server";
+import { checkPageAccess, getCurrentRole } from "@/lib/rbac-server";
 import { Event, InventoryItem } from "@/types";
 import EventDetailsClient from "./_components/event-details-client";
 import { rtdb } from "@/lib/firebase"; // Keep RTDB for logs if available there
@@ -16,8 +16,8 @@ export default async function EventDetailsPage({ params }: PageProps) {
     const { id: eventId } = await params;
 
     // Strict Server-Side Check
-    const role = await getCurrentRole();
-    if (!role) redirect("/login");
+    const hasAccess = await checkPageAccess("/events/[id]");
+    if (!hasAccess) redirect("/unauthorized");
 
     try {
         // Fetch event and inventory from Prisma

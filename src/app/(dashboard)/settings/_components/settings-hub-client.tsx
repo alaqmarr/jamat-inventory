@@ -14,7 +14,9 @@ import {
     Zap,
     Server,
     Users,
-    Shield
+    Shield,
+    Activity,
+    Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -51,214 +53,201 @@ export function SettingsHubClient() {
     }, []);
 
     const getLatencyColor = (ms: number) => {
-        if (ms < 100) return "text-emerald-600";
-        if (ms < 300) return "text-amber-600";
-        return "text-red-600";
+        if (ms < 100) return "text-emerald-500";
+        if (ms < 300) return "text-amber-500";
+        return "text-red-500";
     };
 
     const cards = [
         {
             title: "General Configuration",
-            desc: "Manage global booking rules and system preferences.",
+            desc: "Global booking rules, system preferences, and defaults.",
             icon: Settings,
             href: "/settings/config",
             color: "text-slate-600",
-            bg: "bg-slate-100",
-            gradient: "from-slate-500 to-gray-500"
+            bg: "bg-slate-50",
+            ring: "group-hover:ring-slate-200"
         },
         {
-            title: "Venues Management",
-            desc: "Manage halls and locations available for events.",
+            title: "Venues & Halls",
+            desc: "Manage physical locations, capacities, and availability.",
             icon: Building2,
             href: "/settings/venues",
             color: "text-blue-600",
             bg: "bg-blue-50",
-            gradient: "from-blue-500 to-indigo-500"
+            ring: "group-hover:ring-blue-200"
         },
         {
             title: "Caterers Management",
-            desc: "Manage approved food providers and contact details.",
+            desc: "Approved food providers, menus, and contact details.",
             icon: Utensils,
             href: "/settings/caterers",
             color: "text-amber-600",
             bg: "bg-amber-50",
-            gradient: "from-amber-500 to-orange-500"
+            ring: "group-hover:ring-amber-200"
         },
         {
-            title: "User Management",
-            desc: "Create and manage system users and access roles.",
+            title: "Users & Roles",
+            desc: "Control access through roles and permissions.",
             icon: Users,
             href: "/settings/users",
             color: "text-violet-600",
             bg: "bg-violet-50",
-            gradient: "from-violet-500 to-purple-500"
+            ring: "group-hover:ring-violet-200"
         },
         {
             title: "Data & Backup",
-            desc: "Export data, restore backups, or reset the system.",
+            desc: "Export system data, restore backups, or perform resets.",
             icon: Database,
             href: "/settings/data",
-            color: "text-slate-600",
-            bg: "bg-slate-100",
-            gradient: "from-slate-500 to-slate-600"
+            color: "text-emerald-600",
+            bg: "bg-emerald-50",
+            ring: "group-hover:ring-emerald-200"
         }
     ];
 
     return (
-        <div className="container mx-auto p-8 md:p-12 max-w-7xl space-y-10">
+        <div className="container mx-auto p-6 md:p-10 max-w-7xl space-y-12">
             <PageHeader
-                title="Settings"
-                description="Manage global system configuration and master data."
+                title="System Settings"
+                description="Manage global configuration, master data, and system health."
             />
 
-            {/* Database Status Card */}
-            <Card className="overflow-hidden border-0 shadow-sm">
-                {/* ... (Keep existing DB status card) ... */}
-                <div className="h-1 bg-emerald-500"></div>
-                <CardHeader className="pt-6 pb-3 px-6 md:px-8">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                                <Server className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <div>
-                                <CardTitle className="text-base">Database Connectivity</CardTitle>
-                                <CardDescription>Real-time connection status</CardDescription>
-                            </div>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={checkHealth}
-                            disabled={isCheckingHealth}
-                            className="rounded-lg"
-                        >
-                            <RefreshCw className={cn("h-4 w-4 mr-2", isCheckingHealth && "animate-spin")} />
-                            Refresh
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {dbHealth ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Neon Check */}
-                            <div className={cn(
-                                "p-4 rounded-xl border-2 transition-all",
-                                dbHealth.database?.status === "connected"
-                                    ? "bg-emerald-50 border-emerald-200"
-                                    : "bg-red-50 border-red-200"
-                            )}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        {dbHealth.database?.status === "connected" ? (
-                                            <CheckCircle className="h-6 w-6 text-emerald-600" />
-                                        ) : (
-                                            <XCircle className="h-6 w-6 text-red-600" />
-                                        )}
-                                        <div>
-                                            <p className="font-semibold text-slate-900">Neon PostgreSQL</p>
-                                            <p className="text-xs text-slate-500">Relational Database</p>
-                                        </div>
-                                    </div>
-                                    {dbHealth.database?.status === "connected" && (
-                                        <div className="text-right">
-                                            <div className={cn("text-2xl font-bold font-mono", getLatencyColor(dbHealth.database.latencyMs))}>
-                                                {dbHealth.database.latencyMs}
-                                                <span className="text-sm font-normal text-slate-400 ml-0.5">ms</span>
-                                            </div>
-                                            <Badge className={cn(
-                                                "text-xs",
-                                                dbHealth.database.latencyMs < 100
-                                                    ? "bg-emerald-100 text-emerald-700"
-                                                    : dbHealth.database.latencyMs < 300
-                                                        ? "bg-amber-100 text-amber-700"
-                                                        : "bg-red-100 text-red-700"
-                                            )}>
-                                                <Zap className="h-3 w-3 mr-1" />
-                                                {dbHealth.database.latencyMs < 100 ? "Fast" : dbHealth.database.latencyMs < 300 ? "Normal" : "Slow"}
-                                            </Badge>
-                                        </div>
-                                    )}
+            {/* System Health Hero */}
+            <div className="grid grid-cols-1 gap-6">
+                <Card className="overflow-hidden border-slate-200 shadow-sm bg-white">
+                    <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                                    <Activity className="h-5 w-5 text-indigo-600" />
                                 </div>
-                                {dbHealth.database?.error && (
-                                    <p className="text-xs text-red-600 mt-2">{dbHealth.database.error}</p>
+                                <div>
+                                    <CardTitle className="text-lg">System Status</CardTitle>
+                                    <CardDescription>Real-time infrastructure health check</CardDescription>
+                                </div>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={checkHealth}
+                                disabled={isCheckingHealth}
+                                className="bg-white border-slate-200 text-slate-600 hover:text-indigo-600"
+                            >
+                                <RefreshCw className={cn("h-4 w-4 mr-2", isCheckingHealth && "animate-spin")} />
+                                Refresh Status
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {/* Status Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                            {/* PostgreSQL Status */}
+                            <div className="p-6 md:p-8 flex items-center justify-between group hover:bg-slate-50/50 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className={cn(
+                                        "h-12 w-12 rounded-full flex items-center justify-center transition-colors",
+                                        dbHealth?.database?.status === "connected" ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"
+                                    )}>
+                                        <Database className="h-6 w-6" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900">Primary Database</p>
+                                        <p className="text-sm text-slate-500">PostgreSQL (Neon)</p>
+                                    </div>
+                                </div>
+
+                                {dbHealth ? (
+                                    <div className="text-right">
+                                        <div className="flex items-center justify-end gap-1.5 mb-1">
+                                            <div className={cn("h-2 w-2 rounded-full", dbHealth.database.status === "connected" ? "bg-emerald-500 animate-pulse" : "bg-red-500")} />
+                                            <span className="text-sm font-medium text-slate-700">
+                                                {dbHealth.database.status === "connected" ? "Operational" : "Error"}
+                                            </span>
+                                        </div>
+                                        {dbHealth.database.status === "connected" && (
+                                            <p className={cn("text-xs font-mono font-medium", getLatencyColor(dbHealth.database.latencyMs))}>
+                                                {dbHealth.database.latencyMs}ms latency
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Loader2 className="h-5 w-5 text-slate-300 animate-spin" />
                                 )}
                             </div>
 
-                            {/* RTDB Status */}
-                            <div className={cn(
-                                "p-4 rounded-xl border-2 transition-all",
-                                dbHealth.rtdb.status === "connected"
-                                    ? "bg-emerald-50 border-emerald-200"
-                                    : "bg-red-50 border-red-200"
-                            )}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        {dbHealth.rtdb.status === "connected" ? (
-                                            <CheckCircle className="h-6 w-6 text-emerald-600" />
-                                        ) : (
-                                            <XCircle className="h-6 w-6 text-red-600" />
-                                        )}
-                                        <div>
-                                            <p className="font-semibold text-slate-900">Realtime DB</p>
-                                            <p className="text-xs text-slate-500">Real-time Data</p>
-                                        </div>
+                            {/* Firebase Status */}
+                            <div className="p-6 md:p-8 flex items-center justify-between group hover:bg-slate-50/50 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className={cn(
+                                        "h-12 w-12 rounded-full flex items-center justify-center transition-colors",
+                                        dbHealth?.rtdb?.status === "connected" ? "bg-amber-100 text-amber-600" : "bg-red-100 text-red-600"
+                                    )}>
+                                        <Globe className="h-6 w-6" />
                                     </div>
-                                    {dbHealth.rtdb.status === "connected" && (
-                                        <div className="text-right">
-                                            <div className={cn("text-2xl font-bold font-mono", getLatencyColor(dbHealth.rtdb.latencyMs))}>
-                                                {dbHealth.rtdb.latencyMs}
-                                                <span className="text-sm font-normal text-slate-400 ml-0.5">ms</span>
-                                            </div>
-                                            <Badge className={cn(
-                                                "text-xs",
-                                                dbHealth.rtdb.latencyMs < 100
-                                                    ? "bg-emerald-100 text-emerald-700"
-                                                    : dbHealth.rtdb.latencyMs < 300
-                                                        ? "bg-amber-100 text-amber-700"
-                                                        : "bg-red-100 text-red-700"
-                                            )}>
-                                                <Zap className="h-3 w-3 mr-1" />
-                                                {dbHealth.rtdb.latencyMs < 100 ? "Fast" : dbHealth.rtdb.latencyMs < 300 ? "Normal" : "Slow"}
-                                            </Badge>
-                                        </div>
-                                    )}
+                                    <div>
+                                        <p className="font-semibold text-slate-900">Realtime Engine</p>
+                                        <p className="text-sm text-slate-500">Firebase RTDB</p>
+                                    </div>
                                 </div>
-                                {dbHealth.rtdb.error && (
-                                    <p className="text-xs text-red-600 mt-2">{dbHealth.rtdb.error}</p>
+
+                                {dbHealth ? (
+                                    <div className="text-right">
+                                        <div className="flex items-center justify-end gap-1.5 mb-1">
+                                            <div className={cn("h-2 w-2 rounded-full", dbHealth.rtdb.status === "connected" ? "bg-emerald-500 animate-pulse" : "bg-red-500")} />
+                                            <span className="text-sm font-medium text-slate-700">
+                                                {dbHealth.rtdb.status === "connected" ? "Operational" : "Error"}
+                                            </span>
+                                        </div>
+                                        {dbHealth.rtdb.status === "connected" && (
+                                            <p className={cn("text-xs font-mono font-medium", getLatencyColor(dbHealth.rtdb.latencyMs))}>
+                                                {dbHealth.rtdb.latencyMs}ms latency
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Loader2 className="h-5 w-5 text-slate-300 animate-spin" />
                                 )}
                             </div>
                         </div>
-                    ) : (
-                        <div className="flex items-center justify-center py-8 text-slate-400">
-                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                            Checking connectivity...
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            </div>
 
-            {/* Quick Links Grid */}
-            <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-slate-500" />
-                    Management Areas
-                </h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Management Grid */}
+            <div className="space-y-6">
+                <div className="flex items-center gap-2 text-slate-800 border-b border-slate-200 pb-2">
+                    <Shield className="h-5 w-5 text-indigo-600" />
+                    <h3 className="text-lg font-bold">Administration Modules</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {cards.map((card) => (
-                        <Link key={card.href} href={card.href} className="group block h-full">
-                            <Card className="h-full transition-all hover:shadow-md border-0 shadow-sm overflow-hidden">
-                                <div className={cn("h-1", card.bg.replace("bg-", "bg-").replace("50", "500"))}></div>
-                                <CardHeader className="pb-3">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${card.bg}`}>
-                                        <card.icon className={`h-6 w-6 ${card.color}`} />
+                        <Link key={card.href} href={card.href} className="group block h-full outline-none">
+                            <Card className={cn(
+                                "h-full border-slate-200 shadow-sm transition-all duration-300 overflow-hidden",
+                                "group-hover:shadow-md group-hover:-translate-y-1 group-focus:ring-2 ring-offset-2 ring-indigo-500",
+                                card.ring
+                            )}>
+                                <CardContent className="p-6 space-y-4">
+                                    <div className="flex items-start justify-between">
+                                        <div className={cn("p-3 rounded-xl transition-colors", card.bg)}>
+                                            <card.icon className={cn("h-6 w-6", card.color)} />
+                                        </div>
+                                        <div className="bg-slate-50 text-slate-300 rounded-full p-1 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                            <ChevronRight className="h-4 w-4" />
+                                        </div>
                                     </div>
-                                    <CardTitle className="text-base group-hover:text-indigo-600 transition-colors flex items-center gap-2">
-                                        {card.title}
-                                        <ChevronRight className="h-4 w-4 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all text-indigo-500" />
-                                    </CardTitle>
-                                    <CardDescription className="text-sm">{card.desc}</CardDescription>
-                                </CardHeader>
+
+                                    <div>
+                                        <h4 className="font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">
+                                            {card.title}
+                                        </h4>
+                                        <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                                            {card.desc}
+                                        </p>
+                                    </div>
+                                </CardContent>
                             </Card>
                         </Link>
                     ))}

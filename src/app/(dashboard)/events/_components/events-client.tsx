@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { format, isPast, isToday, isFuture } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getMisriDate } from "@/lib/misri-calendar";
 import { cn } from "@/lib/utils";
 import {
     Plus,
@@ -21,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Card,
     CardContent,
@@ -232,83 +234,51 @@ export default function EventsPage({ initialEvents }: EventsPageProps) {
                     <p className="text-slate-500 mt-1">Try adjusting your search filters.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {filteredEvents.map((event) => {
-                        const isCancelled = event.status === "CANCELLED";
-                        return (
-                            <Card
-                                key={event.id}
-                                className={`cursor-pointer p-5 ${isCancelled ? 'opacity-60' : ''}`}
-                                onClick={() => router.push(`/events/${event.id}`)}
-                            >
-                                {/* Header with Date Block & Status */}
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className={cn(
-                                            "flex flex-col items-center justify-center w-12 h-12 rounded-lg",
-                                            isCancelled ? "bg-slate-100 text-slate-400" : "bg-emerald-50 text-emerald-600"
-                                        )}>
-                                            <span className="text-[10px] font-bold uppercase">
-                                                {format(new Date(event.occasionDate), "MMM")}
-                                            </span>
-                                            <span className="text-lg font-bold leading-none">
-                                                {format(new Date(event.occasionDate), "d")}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <h3 className={cn(
-                                                "font-semibold text-foreground",
-                                                isCancelled && "line-through text-muted-foreground"
-                                            )}>
-                                                {event.name}
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {event.occasionTime}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {getStatusBadge(event)}
-                                </div>
+                <Tabs defaultValue={
+                    filteredEvents.some(e => isToday(new Date(e.occasionDate))) ? "active" :
+                        filteredEvents.some(e => isFuture(new Date(e.occasionDate))) ? "upcoming" : "completed"
+                } className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex items-center justify-between mb-6">
+                        <TabsList className="grid w-full max-w-[400px] grid-cols-3">
+                            <TabsTrigger value="active">Active</TabsTrigger>
+                            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                            <TabsTrigger value="completed">Completed</TabsTrigger>
+                        </TabsList>
+                    </div>
 
-                                {/* Details */}
-                                <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="w-4 h-4 text-slate-400" />
-                                        <span className="truncate">{Array.isArray(event.hall) ? event.hall.join(", ") : event.hall}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Users className="w-4 h-4 text-slate-400" />
-                                        <span>{event.thaalCount} Thaal</span>
-                                    </div>
-                                </div>
+                    <TabsContent value="active" className="space-y-4">
+                        {filteredEvents.filter(e => isToday(new Date(e.occasionDate))).length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                                {filteredEvents
+                                    .filter(e => isToday(new Date(e.occasionDate)))
+                                    .map(event => <EventCard key={event.id} event={event} router={router} isAdmin={isAdmin} handleDeleteClick={handleDeleteClick} getStatusBadge={getStatusBadge} />)
+                                }
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-muted-foreground bg-slate-50 rounded-xl border border-dashed">
+                                No active events today.
+                            </div>
+                        )}
+                    </TabsContent>
 
-                                {/* Admin Actions */}
-                                {isAdmin && (
-                                    <div className="flex justify-end gap-1 pt-3 border-t border-slate-100">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0"
-                                            onClick={(e) => { e.stopPropagation(); router.push(`/events/${event.id}/edit`); }}
-                                            disabled={isCancelled}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                            onClick={(e) => handleDeleteClick(e, event.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                )}
-                            </Card>
-                        );
-                    })}
-                </div>
+                    <TabsContent value="upcoming" className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {filteredEvents
+                                .filter(e => isFuture(new Date(e.occasionDate)))
+                                .map(event => <EventCard key={event.id} event={event} router={router} isAdmin={isAdmin} handleDeleteClick={handleDeleteClick} getStatusBadge={getStatusBadge} />)
+                            }
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="completed" className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 opacity-80 hover:opacity-100 transition-opacity">
+                            {filteredEvents
+                                .filter(e => isPast(new Date(e.occasionDate)) && !isToday(new Date(e.occasionDate)))
+                                .map(event => <EventCard key={event.id} event={event} router={router} isAdmin={isAdmin} handleDeleteClick={handleDeleteClick} getStatusBadge={getStatusBadge} />)
+                            }
+                        </div>
+                    </TabsContent>
+                </Tabs>
             )}
 
             {/* Delete Confirmation Dialog */}
@@ -336,5 +306,91 @@ export default function EventsPage({ initialEvents }: EventsPageProps) {
                 </div>
             )}
         </div>
+    );
+}
+
+function EventCard({ event, router, isAdmin, handleDeleteClick, getStatusBadge }: any) {
+    const isCancelled = event.status === "CANCELLED";
+    const hijri = getMisriDate(new Date(event.occasionDate));
+
+    return (
+        <Card
+            className={`cursor-pointer p-5 ${isCancelled ? 'opacity-60' : ''}`}
+            onClick={() => router.push(`/events/${event.id}`)}
+        >
+            {/* Header with Date Block & Status */}
+            <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className={cn(
+                        "flex flex-col items-center justify-center w-12 h-12 rounded-lg",
+                        isCancelled ? "bg-slate-100 text-slate-400" : "bg-emerald-50 text-emerald-600"
+                    )}>
+                        <span className="text-[10px] font-bold uppercase">
+                            {format(new Date(event.occasionDate), "MMM")}
+                        </span>
+                        <span className="text-lg font-bold leading-none">
+                            {format(new Date(event.occasionDate), "d")}
+                        </span>
+                    </div>
+                    <div>
+                        <h3 className={cn(
+                            "font-semibold text-foreground leading-tight",
+                            isCancelled && "line-through text-muted-foreground"
+                        )}>
+                            {event.name}
+                        </h3>
+                        {event.description && (
+                            <p className="text-sm font-medium text-emerald-600/90 truncate max-w-[180px] mt-0.5">
+                                {event.description}
+                            </p>
+                        )}
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                            <span className="flex items-center gap-0.5">
+                                <Clock className="w-3 h-3" />
+                                {event.occasionTime}
+                            </span>
+                            <span className="text-slate-300">•</span>
+                            <span>{hijri.formattedEn}</span>
+                        </p>
+                    </div>
+                </div>
+                {getStatusBadge(event)}
+            </div>
+
+            {/* Details */}
+            <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-slate-400" />
+                    <span className="truncate">{Array.isArray(event.hall) ? event.hall.join(", ") : event.hall}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-slate-400" />
+                    <span>{event.thaalCount} Thaal</span>
+                </div>
+            </div>
+
+            {/* Admin Actions */}
+            {isAdmin && (
+                <div className="flex justify-end gap-1 pt-3 border-t border-slate-100">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => { e.stopPropagation(); router.push(`/events/${event.id}/edit`); }}
+                        disabled={isCancelled}
+                    >
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={(e) => handleDeleteClick(e, event.id)}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
+        </Card>
     );
 }

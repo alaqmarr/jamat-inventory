@@ -52,11 +52,13 @@ export async function POST(
         newAvailable += quantity;
         // Prevent returning more than total? Assuming logic holds.
         if (newAvailable > newTotal) {
-          // Optional: Allow cap or just warn? For now let it float if manual correction needed,
-          // but typically strictly <= Total.
-          // Let's safe guard:
+          // Safe guard:
           newAvailable = Math.min(newAvailable, newTotal);
         }
+      } else if (action === "FOUND") {
+        // Recovered item: Adds back to Total (undo loss) AND Available (back in stock)
+        newTotal += quantity;
+        newAvailable += quantity;
       }
 
       // Handle LOSS (Permanent reduction)
@@ -99,7 +101,8 @@ export async function POST(
     // Determine log action name
     let logActionType: any = "SYSTEM_ACTION";
     if (action === "ISSUE") logActionType = "INVENTORY_REMOVED";
-    else if (action === "RETURN") logActionType = "INVENTORY_RETURNED";
+    else if (action === "RETURN" || action === "FOUND")
+      logActionType = "INVENTORY_RETURNED";
     else if (action === "LOSS") logActionType = "INVENTORY_LOSS";
 
     await logAction(

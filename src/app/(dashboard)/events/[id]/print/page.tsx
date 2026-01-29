@@ -6,9 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EventPrintPage() {
     // Print page access should match event view access generally, but maybe restricted?
-    // Using "/events" permission for now, or could use "/events/[id]".
-    // Standardizing on "/events/[id]" makes sense.
-    const hasAccess = await checkPageAccess("/events/[id]");
+    const hasAccess = await checkPageAccess("/events/[id]/print");
     if (!hasAccess) {
         redirect("/unauthorized");
     }

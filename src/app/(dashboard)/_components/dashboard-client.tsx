@@ -17,8 +17,9 @@ import {
     Plus,
     ChevronLeft,
     ChevronRight,
-    Warehouse
+    Warehouse,
 } from "lucide-react";
+import { SharedCalendar } from "@/components/shared-calendar";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { KPICard } from "./kpi-card";
+import Link from "next/link";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -337,22 +339,15 @@ export default function DashboardClient({ initialEvents, todayHijri, currentDate
                 {/* Right Sidebar (Col Span 4) */}
                 <div className="lg:col-span-4 space-y-6">
                     {/* Calendar Widget */}
-                    <Card className="min-h-[350px] flex items-center justify-center p-4">
-                        <Calendar
-                            mode="single"
-                            selected={date}
-                            onSelect={handleDateChange}
-                            className="w-full"
-                            locale={enGB}
-                            classNames={{
-                                day_selected: "bg-indigo-600 text-white hover:bg-indigo-700 focus:bg-indigo-700 rounded-md",
-                                day_today: "bg-slate-100 text-slate-900 font-bold border border-slate-200 rounded-md",
-                                head_cell: "text-muted-foreground font-medium text-[0.8rem] text-slate-500",
-                                cell: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-                                day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-slate-100 rounded-md transition-colors text-slate-700",
-                            }}
-                        />
-                    </Card>
+                    <Link href="/events/calendar">
+                        <Card className="min-h-[350px] p-4">
+                            <SharedCalendar
+                                embedded={true}
+                                onDateSelect={handleDateChange}
+                                initialDate={date}
+                            />
+                        </Card>
+                    </Link>
                 </div>
             </div>
 

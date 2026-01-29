@@ -44,43 +44,49 @@ const renderEmailLayout = (
     }
     body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+    
+    /* Mobile-First / Responsive Styles */
     @media only screen and (max-width: 600px) {
-      .main-container { width: 100% !important; border-radius: 0 !important; }
+      .main-container { width: 100% !important; max-width: 100% !important; margin: 0 !important; border-radius: 0 !important; }
       .content { padding: 20px !important; }
-      .info-label { width: 100% !important; display: block !important; margin-bottom: 5px !important; }
-      .info-value { width: 100% !important; display: block !important; text-align: left !important; padding-bottom: 15px !important; }
+      .header { padding: 20px !important; }
+      .info-row { display: block !important; width: 100% !important; margin-bottom: 15px !important; border-bottom: 1px solid #edf2f7; }
+      .info-label { display: block !important; width: 100% !important; padding: 0 0 5px 0 !important; border: none !important; color: #718096 !important; font-size: 11px !important; letter-spacing: 0.5px !important; font-weight: 700 !important; text-transform: uppercase !important; }
+      .info-value { display: block !important; width: 100% !important; padding: 0 0 10px 0 !important; border: none !important; text-align: left !important; font-size: 16px !important; color: #2d3748 !important; }
+      .button-table { width: 100% !important; }
+      .button-link { width: 100% !important; box-sizing: border-box !important; text-align: center !important; }
     }
   </style>
 </head>
 <body style="font-family: ${THEME.fonts.main}; background-color: ${THEME.colors.bg}; margin: 0; padding: 0;">
   
-  <!-- Smart Preheader (Hidden) -->
+  <!-- Smart Preheader -->
   <div style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
     ${previewText || title}
     ${"&nbsp;&zwnj;".repeat(100)}
   </div>
 
-  <div class="wrapper" style="width: 100%; background-color: ${THEME.colors.bg}; padding: 40px 0;">
+  <div class="wrapper" style="width: 100%; background-color: ${THEME.colors.bg}; padding: 20px 0;">
     <!-- Main Container -->
-    <table class="main-container" align="center" width="600" cellpadding="0" cellspacing="0" style="background-color: ${THEME.colors.containerBg}; margin: 0 auto; max-width: 600px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); font-family: ${THEME.fonts.main};">
+    <table class="main-container" align="center" width="600" cellpadding="0" cellspacing="0" style="background-color: ${THEME.colors.containerBg}; margin: 0 auto; max-width: 600px; width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); font-family: ${THEME.fonts.main};">
       
       <!-- Header -->
       <tr>
         <td class="header" style="background-color: ${THEME.colors.headerBg}; padding: 30px 20px; text-align: center; border-bottom: 3px solid ${THEME.colors.gold};">
-          <h1 style="color: #f6e6b4; margin: 0; font-family: ${THEME.fonts.main}; font-size: 24px;">Jamaat Inventory</h1>
+          <h1 style="color: #f6e6b4; margin: 0; font-family: ${THEME.fonts.main}; font-size: 24px; letter-spacing: 0.5px;">Jamaat Inventory</h1>
         </td>
       </tr>
 
       <!-- Content -->
       <tr>
-        <td class="content" style="padding: 40px 30px; color: ${THEME.colors.textMain}; font-size: 15px; line-height: 1.6;">
+        <td class="content" style="padding: 40px 30px; color: ${THEME.colors.textMain}; font-size: 16px; line-height: 1.6;">
           ${content}
         </td>
       </tr>
 
       <!-- Footer -->
       <tr>
-        <td class="footer" style="background-color: #f9fafb; padding: 25px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid ${THEME.colors.border};">
+        <td class="footer" style="background-color: #f9fafb; padding: 25px; text-align: center; font-size: 13px; color: #888; border-top: 1px solid ${THEME.colors.border};">
           <p style="margin: 0 0 10px;">&copy; ${new Date().getFullYear()} Jamaat Inventory System</p>
           <p style="margin: 0;">Secure Automated Notification</p>
         </td>
@@ -100,13 +106,13 @@ const renderButton = (
   variant: "primary" | "loss" = "primary",
 ) => {
   const bg = variant === "primary" ? THEME.colors.gold : "#e53e3e";
-  const color = variant === "primary" ? "#ffffff" : "#ffffff";
+  const color = "#ffffff";
 
   return `
-    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 25px; margin-bottom: 25px;">
+    <table class="button-table" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 30px; margin-bottom: 30px;">
       <tr>
         <td align="center">
-          <a href="${url}" style="background-color: ${bg}; color: ${color}; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; mso-padding-alt: 0;">
+          <a href="${url}" class="button-link" style="background-color: ${bg}; color: ${color}; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; mso-padding-alt: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <!--[if mso]><i style="letter-spacing: 25px; mso-font-width: -100%; mso-text-raise: 30pt">&nbsp;</i><![endif]-->
             <span style="mso-text-raise: 15pt;">${label}</span>
             <!--[if mso]><i style="letter-spacing: 25px; mso-font-width: -100%">&nbsp;</i><![endif]-->
@@ -123,11 +129,11 @@ const renderInfoTable = (
   const rowsHtml = rows
     .map(
       (row) => `
-    <tr>
-      <td class="info-label" style="padding: 12px 15px; border-bottom: 1px solid #edf2f7; font-size: 12px; font-weight: 600; color: ${THEME.colors.textMuted}; text-transform: uppercase; width: 35%; vertical-align: top;">
+    <tr class="info-row">
+      <td class="info-label" style="padding: 12px 15px; border-bottom: 1px solid #edf2f7; font-size: 13px; font-weight: 600; color: ${THEME.colors.textMuted}; text-transform: uppercase; width: 35%; vertical-align: top;">
         ${row.label}
       </td>
-      <td class="info-value" style="padding: 12px 15px; border-bottom: 1px solid #edf2f7; font-size: 14px; font-weight: 600; color: ${row.color || "#2d3748"}; text-align: right; vertical-align: top;">
+      <td class="info-value" style="padding: 12px 15px; border-bottom: 1px solid #edf2f7; font-size: 15px; font-weight: 600; color: ${row.color || "#2d3748"}; text-align: right; vertical-align: top;">
         ${row.value}
       </td>
     </tr>
@@ -136,7 +142,7 @@ const renderInfoTable = (
     .join("");
 
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border: 1px solid ${THEME.colors.border}; border-radius: 6px; margin-bottom: 25px; border-collapse: separate; border-spacing: 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border: 1px solid ${THEME.colors.border}; border-radius: 8px; margin-bottom: 25px; border-collapse: separate; border-spacing: 0;">
       ${rowsHtml}
     </table>
   `;

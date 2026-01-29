@@ -23,7 +23,7 @@ export default async function DashboardLayout({
 
             {/* Main Content - Padded to accomodate fixed sidebar on desktop */}
             <main className="lg:pl-[280px] h-full transition-all duration-300 flex flex-col min-h-screen">
-                <Header />
+                <Header user={session?.user} role={role} />
                 <div className="flex-1 p-6 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
                     {children}
                 </div>

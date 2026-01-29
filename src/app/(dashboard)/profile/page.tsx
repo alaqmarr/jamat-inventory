@@ -2,12 +2,17 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import ProfileClient from "./_components/profile-client";
+import { checkPageAccess } from "@/lib/rbac-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-    const session = await auth();
+    const hasAccess = await checkPageAccess("/profile");
+    if (!hasAccess) {
+        redirect("/unauthorized");
+    }
 
+    const session = await auth();
     if (!session?.user) {
         redirect("/login");
     }

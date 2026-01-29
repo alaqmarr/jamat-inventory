@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { format, subHours, addHours } from "date-fns";
-import { Loader2, AlertTriangle, Package, History, Plus, Minus, AlertCircle, Search } from "lucide-react";
+import { Loader2, AlertTriangle, Package, History, Plus, Minus, AlertCircle, Search, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -142,10 +142,20 @@ export default function EventInventoryClient() {
             let issued = 0, returned = 0, lost = 0;
             itemLogs.forEach(log => {
                 const qty = log.details?.quantity || log.quantity || 0;
-                if (log.action.includes("ISSUE") || log.action.includes("REMOVED")) issued += qty;
-                else if (log.action.includes("RETURN") || log.action.includes("RETURNED")) returned += qty;
-                else if (log.action.includes("LOSS") || log.action.includes("LOSS")) lost += qty;
+                const act = log.action.toUpperCase();
+
+                if (act.includes("ISSUE") || act.includes("REMOVED")) issued += qty;
+                else if (act.includes("RETURN")) returned += qty;
+                else if (act.includes("LOSS")) lost += qty;
+                else if (act.includes("FOUND")) {
+                    // Found means it was returned from "lost" state
+                    returned += qty;
+                    lost -= qty;
+                }
             });
+            // Ensure lost doesn't go below 0 (data integrity)
+            if (lost < 0) lost = 0;
+
             statsMap.set(item.id, { issued, returned, lost, deficit: issued - returned - lost });
         });
         return statsMap;
@@ -228,6 +238,7 @@ export default function EventInventoryClient() {
                                         <TableHead className="font-bold text-indigo-700 text-center">Issued</TableHead>
                                         <TableHead className="font-bold text-emerald-700 text-center">Returned</TableHead>
                                         <TableHead className="font-bold text-amber-700 text-center">Pending</TableHead>
+                                        <TableHead className="font-bold text-red-700 text-center">Lost</TableHead>
                                         <TableHead className="text-right font-bold text-slate-700 pr-8">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -255,6 +266,9 @@ export default function EventInventoryClient() {
                                                         <span className="text-slate-300">-</span>
                                                     )}
                                                 </TableCell>
+                                                <TableCell className="text-center font-mono text-red-700 font-bold">
+                                                    {stats.lost > 0 ? stats.lost : <span className="text-slate-300">-</span>}
+                                                </TableCell>
                                                 <TableCell>
                                                     {canManageInventory && (
                                                         <div className="flex items-center justify-end gap-3">
@@ -262,9 +276,21 @@ export default function EventInventoryClient() {
                                                                 qtyValue={inputValues[item.id] || ""}
                                                                 onQtyChange={(val) => setInputValues(prev => ({ ...prev, [item.id]: val }))}
                                                                 onDispatch={(qty) => handleSingleAction(item.id, "ISSUE", qty)}
-                                                                onReturn={(qty) => handleSingleAction(item.id, "RETURN", qty)}
+                                                                onReturn={(qty) => {
+                                                                    // Validation: Cannot return more than issued/pending? 
+                                                                    // Pending = deficit. 
+                                                                    // You CAN return more than deficit if you are correcting an issue? No, that would imply negative deficit.
+                                                                    // STRICT Validation: qty <= stats.deficit
+                                                                    if (qty > stats.deficit) {
+                                                                        toast.error(`Cannot return ${qty}. Only ${stats.deficit} pending.`);
+                                                                        return;
+                                                                    }
+                                                                    handleSingleAction(item.id, "RETURN", qty);
+                                                                }}
                                                                 deficit={stats.deficit}
+                                                                lost={stats.lost}
                                                                 onReportLoss={(qty) => handleSingleAction(item.id, "LOSS", qty)}
+                                                                onFound={(qty) => handleSingleAction(item.id, "FOUND" as any, qty)}
                                                             />
                                                         </div>
                                                     )}
@@ -302,22 +328,25 @@ export default function EventInventoryClient() {
                                     const isIssue = log.action.includes("ISSUE") || log.action.includes("REMOVED");
                                     const isReturn = log.action.includes("RETURN");
                                     const isLoss = log.action.includes("LOSS");
+                                    const isFound = log.action.includes("FOUND");
 
                                     return (
                                         <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                             <div className="flex items-center gap-4">
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isIssue ? "bg-indigo-100 text-indigo-600" :
                                                     isReturn ? "bg-emerald-100 text-emerald-600" :
-                                                        "bg-red-100 text-red-600"
+                                                        isFound ? "bg-green-100 text-green-600" :
+                                                            "bg-red-100 text-red-600"
                                                     }`}>
-                                                    {log.action.includes("REMOVED") ? "I" : log.action[0]}
+                                                    {log.action.includes("REMOVED") ? "I" : isFound ? "F" : log.action[0]}
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-900">
                                                         <span className="font-bold">{log.userName}</span>
                                                         <span className="text-slate-500 font-normal mx-1">
                                                             {isIssue ? "dispatched" :
-                                                                isReturn ? "returned" : "reported lost"}
+                                                                isReturn ? "returned" :
+                                                                    isFound ? "found/recovered" : "reported lost"}
                                                         </span>
                                                         <span className="font-bold text-slate-900">
                                                             {log.details?.quantity || log.quantity} {log.details?.itemName || log.itemName}
@@ -346,10 +375,12 @@ interface QuickActionRowProps {
     onDispatch: (q: number) => void;
     onReturn: (q: number) => void;
     deficit: number;
+    lost: number;
     onReportLoss: (q: number) => void;
+    onFound: (q: number) => void;
 }
 
-function QuickActionRow({ qtyValue, onQtyChange, onDispatch, onReturn, deficit, onReportLoss }: QuickActionRowProps) {
+function QuickActionRow({ qtyValue, onQtyChange, onDispatch, onReturn, deficit, lost, onReportLoss, onFound }: QuickActionRowProps) {
 
     const handleAction = (type: "dispatch" | "return") => {
         const val = parseInt(qtyValue);
@@ -361,6 +392,27 @@ function QuickActionRow({ qtyValue, onQtyChange, onDispatch, onReturn, deficit, 
 
     return (
         <div className="flex items-center gap-2">
+            {/* Actions Dropdown or individual buttons? Space is key. */}
+
+            {lost > 0 && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                    title="Mark Found (Recovered)"
+                    onClick={() => {
+                        const recoverQty = prompt(`How many lost items were found? (Max: ${lost})`, String(lost));
+                        if (recoverQty) {
+                            const val = parseInt(recoverQty);
+                            if (val > 0 && val <= lost) onFound(val);
+                            else if (val > lost) toast.error("Cannot find more than lost!");
+                        }
+                    }}
+                >
+                    <CheckSquare className="h-4 w-4" />
+                </Button>
+            )}
+
             {deficit > 0 && (
                 <Button
                     variant="ghost"
@@ -368,7 +420,7 @@ function QuickActionRow({ qtyValue, onQtyChange, onDispatch, onReturn, deficit, 
                     className="h-8 w-8 text-red-400 hover:text-red-700 hover:bg-red-50"
                     title="Report Loss"
                     onClick={() => {
-                        if (confirm(`Report missing items?`)) onReportLoss(deficit);
+                        if (confirm(`Report all ${deficit} missing items as LOST?`)) onReportLoss(deficit);
                     }}
                 >
                     <AlertCircle className="h-4 w-4" />
@@ -384,7 +436,7 @@ function QuickActionRow({ qtyValue, onQtyChange, onDispatch, onReturn, deficit, 
                     onChange={(e) => onQtyChange(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === "Enter" && qtyValue) {
-                            // Optionally handle enter key here
+                            handleAction("return"); // Default to return on Enter? Or do nothing?
                         }
                     }}
                 />

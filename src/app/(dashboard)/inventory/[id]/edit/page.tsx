@@ -15,9 +15,7 @@ export default async function EditInventoryPage({ params }: PageProps) {
     const { id } = await params;
 
     // Strict RBAC Check
-    // Reuse "/inventory/add" or rely on "/inventory" + Role check?
-    // Let's check generally if they can access inventory management features
-    const hasAccess = await checkPageAccess("/inventory/add");
+    const hasAccess = await checkPageAccess("/inventory/[id]/edit");
     if (!hasAccess) {
         redirect("/unauthorized");
     }

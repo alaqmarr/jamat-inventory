@@ -1,12 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Loader2, Download, Phone, Calendar, MapPin, User, Utensils, FileText, CheckSquare, Check } from "lucide-react";
+import { Loader2, Download, Phone, Calendar, MapPin, User, Utensils, FileText, CheckSquare, Check, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Event } from "@/types";
 import { generateMiqaatBookingForm } from "@/lib/pdf-generator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LagatDrawer } from "@/components/events/lagat-drawer";
+// import {
+//     Drawer,
+//     DrawerClose,
+//     DrawerContent,
+//     DrawerDescription,
+//     DrawerFooter,
+//     DrawerHeader,
+//     DrawerTitle,
+//     DrawerTrigger,
+// } from "@/components/ui/drawer";
 
 const format12Hour = (timeStr: string | undefined | null) => {
     if (!timeStr || timeStr === "NA") return "NA";
@@ -24,11 +37,40 @@ const format12Hour = (timeStr: string | undefined | null) => {
 
 export default function EventPrintPage() {
     const params = useParams();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const eventId = params.id as string;
     const [event, setEvent] = useState<Event | null>(null);
     const [hijriDate, setHijriDate] = useState<string | null>(null);
     const [hijriDateAr, setHijriDateAr] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+    // Lagat State (Ephemeral - Direct Amounts)
+    // Initialize lazily to avoid flash, reading directly from searchParams
+    const [lagatAmounts, setLagatAmounts] = useState<Record<string, string>>(() => {
+        if (!searchParams) return {};
+        const amounts: Record<string, string> = {
+            thaal: searchParams.get("cost_thaal") || "",
+            sarkari: searchParams.get("cost_sarkari") || "",
+            kitchen: searchParams.get("cost_kitchen") || "",
+            decoration: searchParams.get("cost_decoration") || "",
+            other: searchParams.get("cost_other") || "",
+            deposit: searchParams.get("cost_deposit") || "",
+        };
+
+        // Extract Hall Costs
+        searchParams.forEach((val, key) => {
+            if (key.startsWith("cost_hall_")) {
+                amounts[key] = val;
+            }
+        });
+        return amounts;
+    });
+
+    const handleLagatChange = (key: string, value: string) => {
+        setLagatAmounts(prev => ({ ...prev, [key]: value }));
+    };
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -59,21 +101,113 @@ export default function EventPrintPage() {
         fetchEvent();
     }, [eventId]);
 
-    if (isLoading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
-    if (!event) return <div className="p-10 text-center text-red-500">Event not found</div>;
+    // Calculate Grand Total
+    const calculateGrandTotal = () => {
+        const total = Object.values(lagatAmounts).reduce((acc, curr) => acc + (Number(curr) || 0), 0);
+        return total;
+    };
+
+    const formatCurrency = (val: number) => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(val);
+    };
+
+    const getLagatEntries = () => {
+        const entries = [
+            { label: "Thaal Amount", value: lagatAmounts.thaal },
+            { label: "Sarkari Amount", value: lagatAmounts.sarkari },
+            { label: "Kitchen Charge", value: lagatAmounts.kitchen },
+            { label: "Decoration", value: lagatAmounts.decoration },
+            { label: "Other Misc", value: lagatAmounts.other },
+        ];
+
+        // Add Halls
+        Object.keys(lagatAmounts).forEach(key => {
+            if (key.startsWith("cost_hall_")) {
+                const hallName = key.replace("cost_hall_", "");
+                entries.push({ label: `${hallName}`, value: lagatAmounts[key] });
+            }
+        });
+
+
+
+        return entries.filter(e => Number(e.value) > 0);
+    };
+
+    const grandTotal = calculateGrandTotal();
 
     const handleDownload = () => {
-        if (event) generateMiqaatBookingForm(event, hijriDate, hijriDateAr);
+        if (event) {
+            // Helper for PDF currency (Safe font)
+            const formatForPdf = (val: number | string) => {
+                const num = Number(val) || 0;
+                return "Rs. " + new Intl.NumberFormat('en-IN').format(num);
+            };
+
+            const entriesFormatted = getLagatEntries().map(e => {
+                let qty = "-";
+                let rate = "-";
+                const totalVal = Number(e.value);
+
+                // Map labels to event quantities to calculate Rate
+                if (e.label === "Thaal Amount") {
+                    const count = event.thaalCount || 0;
+                    qty = String(count);
+                    if (count > 0) rate = formatForPdf(totalVal / count);
+                } else if (e.label === "Sarkari Amount") {
+                    const count = event.sarkariThaalSet || 0;
+                    qty = String(count);
+                    if (count > 0) rate = formatForPdf(totalVal / count);
+                } else {
+                    // For other items, treat as qty 1 or fixed
+                    if (e.label.includes("Cost") && !e.label.includes("Thaal") && !e.label.includes("Sarkari")) {
+                        // Hall costs
+                        qty = "1";
+                        rate = formatForPdf(totalVal);
+                    }
+                    // Kitchen, Decoration, Deposit -> Qty "-", Rate "-" (or implies fixed)
+                }
+
+                return {
+                    label: e.label,
+                    quantity: qty,
+                    rate: rate,
+                    total: formatForPdf(totalVal)
+                };
+            });
+
+            // Transform to format for PDF: { items: [{label, quantity, rate, total}], grandTotal }
+            const pdfData = {
+                items: entriesFormatted,
+                grandTotal: formatForPdf(grandTotal),
+                deposit: Number(lagatAmounts.deposit) > 0 ? formatForPdf(lagatAmounts.deposit) : undefined,
+            };
+            generateMiqaatBookingForm(event, hijriDate, hijriDateAr, pdfData);
+        }
     }
+
+    if (isLoading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
+    if (!event) return <div className="p-10 text-center text-red-500">Event not found</div>;
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
 
             {/* Controls */}
-            <div className="max-w-4xl mx-auto mb-8 flex justify-between items-center">
+            <div className="max-w-4xl mx-auto mb-8 flex justify-between items-center print:hidden">
                 <Button variant="outline" onClick={() => window.history.back()}>Back to Dashboard</Button>
                 <div className="flex gap-4">
-                    <span className="text-sm text-slate-500 self-center italic">Previewing PDF content...</span>
+                    <Button
+                        variant="secondary"
+                        onClick={() => setIsDrawerOpen(true)}
+                        className="bg-white border text-slate-700 hover:bg-slate-50 shadow-sm"
+                    >
+                        <Calculator className="mr-2 h-4 w-4" /> Edit Costs
+                    </Button>
+                    <span className="text-sm text-slate-500 self-center italic hidden md:block">Previewing PDF content...</span>
                     <Button onClick={handleDownload} className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">
                         <Download className="mr-2 h-4 w-4" /> Download PDF
                     </Button>
@@ -226,54 +360,44 @@ export default function EventPrintPage() {
                         </div>
                     </div>
 
-                    {/* Section 4: Lagat Table */}
+                    {/* Section 4: Lagat Details (Preview) */}
                     <div className="mb-0">
-                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Lagat & Deposits</h3>
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Lagat Details</h3>
                         <div className="flex gap-4">
                             <div className="flex-grow">
-                                <table className="w-full text-xs border-collapse table-fixed">
+                                <table className="w-full text-xs box-border border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-50">
+                                            <th className="border border-slate-300 p-2 text-left w-[70%]">Item</th>
+                                            <th className="border border-slate-300 p-2 text-right w-[30%]">Amount</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
-                                        {(() => {
-                                            const halls = Array.isArray(event.hall) ? event.hall : [event.hall];
-                                            const leftItems = [
-                                                { label: "₹ Per Thaal", value: "" },
-                                                { label: "₹ Sarkari", value: "" },
-                                                { label: "₹ Kitchen", value: "" },
-                                                { label: "Decoration", value: event.decorations ? "Yes" : "No" },
-                                                { label: "Other", value: "" },
-                                            ];
-                                            const maxRows = Math.max(leftItems.length, halls.length);
-                                            const rows = [];
-                                            for (let i = 0; i < maxRows; i++) {
-                                                const left = leftItems[i] || { label: "", value: "" };
-                                                const hall = halls[i] || "";
-                                                rows.push(
-                                                    <tr key={i}>
-                                                        <td className="border border-slate-300 p-1.5 font-medium whitespace-nowrap w-[20%]">{left.label}</td>
-                                                        <td className="border border-slate-300 p-1.5 w-[20%]"></td>
-                                                        <td className="border border-slate-300 p-1.5 w-[10%]"></td>
-                                                        <td className="border border-slate-300 p-1.5 whitespace-nowrap w-[20%]">{hall}</td>
-                                                        <td className="border border-slate-300 p-1.5 w-[30%]"></td>
-                                                    </tr>
-                                                );
-                                            }
-                                            rows.push(
-                                                <tr key="total">
-                                                    <td className="border border-slate-300 p-1.5 font-medium whitespace-nowrap">Others</td>
-                                                    <td className="border border-slate-300 p-1.5"></td>
-                                                    <td className="border border-slate-300 p-1.5"></td>
-                                                    <td className="border border-slate-300 p-1.5 font-bold whitespace-nowrap bg-slate-50">TOTAL</td>
-                                                    <td className="border border-slate-300 p-1.5 font-bold bg-slate-50"></td>
+                                        {getLagatEntries().length > 0 ? (
+                                            getLagatEntries().map((row, i) => (
+                                                <tr key={i}>
+                                                    <td className="border border-slate-300 p-2 font-medium">{row.label}</td>
+                                                    <td className="border border-slate-300 p-2 text-right font-semibold">{formatCurrency(Number(row.value))}</td>
                                                 </tr>
-                                            )
-                                            return rows;
-                                        })()}
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={2} className="border border-slate-300 p-2 text-center text-slate-400 italic">No cost details added.</td>
+                                            </tr>
+                                        )}
+                                        <tr>
+                                            <td className="border border-slate-300 p-2 text-right font-bold bg-slate-50">GRAND TOTAL</td>
+                                            <td className="border border-slate-300 p-2 text-right font-bold bg-slate-100">{formatCurrency(grandTotal)}</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
+
                             <div className="w-32 border-2 border-slate-800 p-2 flex flex-col items-center justify-center text-center shrink-0 rounded">
-                                <div className="font-bold text-[10px] mb-1 uppercase leading-tight">Returnable<br />Deposit</div>
-                                <div className="text-lg font-bold min-h-[30px] w-full border-t border-slate-200 mt-1"></div>
+                                <div className="font-bold text-[10px] mb-1 uppercase leading-tight">Refundable<br />Deposit</div>
+                                <div className="text-lg font-bold min-h-[30px] w-full border-t border-slate-200 mt-1 flex items-center justify-center pt-1">
+                                    {Number(lagatAmounts.deposit) > 0 ? formatCurrency(Number(lagatAmounts.deposit)) : "-"}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -292,28 +416,49 @@ export default function EventPrintPage() {
                         </div>
                     </div>
 
-                </div>
+                </div >
 
                 {/* Footer */}
-                <div className="mt-auto px-8 pb-8 pt-4 border-t border-slate-200 bg-slate-50">
+                < div className="mt-auto px-8 pb-8 pt-4 border-t border-slate-200 bg-slate-50" >
                     <div className="flex justify-between items-end">
                         <div>
-                            <h1 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase">MIQAAT BOOKING FORM</h1>
-                            <p className="text-slate-500 text-xs font-medium tracking-wide">Official Event Documentation</p>
+                            <h1 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase">ANJUMAN-E-MOHAMMEDI</h1>
+                            <p className="text-slate-500 text-xs font-medium tracking-wide">Miqaat Documentation</p>
                         </div>
                         <div className="text-right">
                             <p className="text-slate-900 font-mono font-bold text-sm tracking-widest">
-                                INV-{format(new Date(event.occasionDate), "yyyy")}-{event.id.slice(0, 6).toUpperCase()}
+                                {format(new Date(event.occasionDate), "ddMMyyyy")}-{event.mobile}
                             </p>
-                            <p className="text-slate-400 text-[10px] mt-1">Generated: {format(new Date(), "PPP p")}</p>
+                            <p className="text-slate-400 text-[10px] mt-1">Digitally generated by Secunderabad Jamaat on {format(new Date(), "PPP p")}</p>
                         </div>
                     </div>
-                    <div className="text-center mt-4">
-                        <p className="text-[10px] text-slate-300">Jamaat Inventory Management System • Confidential</p>
-                    </div>
-                </div>
+                </div >
 
-            </div>
-        </div>
+            </div >
+
+            {/* Calculation Drawer */}
+            <LagatDrawer
+                open={isDrawerOpen}
+                onOpenChange={setIsDrawerOpen}
+                amounts={lagatAmounts}
+                onChange={(key, value) => {
+                    setLagatAmounts(prev => {
+                        const next = { ...prev, [key]: value };
+                        // Update URL seamlessly
+                        const params = new URLSearchParams(searchParams.toString());
+                        Object.entries(next).forEach(([k, v]) => params.set(k.startsWith("cost_") ? k : `cost_${k}`, v));
+                        router.replace(`?${params.toString()}`, { scroll: false });
+                        return next;
+                    });
+                }}
+                counts={{
+                    thaalCount: event.thaalCount || 0,
+                    sarkariCount: event.sarkariThaalSet || 0,
+                }}
+                halls={event.hall ? (Array.isArray(event.hall) ? event.hall : [event.hall]) : []}
+                grandTotal={grandTotal}
+            />
+
+        </div >
     );
 }

@@ -61,7 +61,7 @@ const routeGroups = [
         items: [
             { label: "Logs", icon: ScrollText, href: "/logs" },
             { label: "Sync", icon: RefreshCw, href: "/settings/data/sync" },
-            { label: "Export", icon: FileDown, href: "/settings/data/export" },
+            { label: "Export", icon: FileDown, href: "/export-data" },
             { label: "Settings", icon: Settings, href: "/settings/config" },
             { label: "System Reset", icon: AlertTriangle, href: "/settings/data" },
             { label: "Email Test", icon: Mail, href: "/settings/email-test" },
