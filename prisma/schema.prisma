@@ -175,3 +175,59 @@ model Config {
 
   @@map("config")
 }
+
+model KhidmatRequest {
+  id        String   @id @default(cuid())
+  miqat     String
+  name      String
+  phone     String
+  date      DateTime
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("khidmat_requests")
+}
+
+model MemberRegistration {
+  id          String   @id @default(cuid())
+  title       String
+  name        String
+  its         String   @unique
+  email       String
+  dob         DateTime
+  phone       String
+  quranHifz   String
+  passport    String
+  kunSafar    String
+  occupation  String
+  sports      String
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("member_registrations")
+}
+
+model Blog {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  author      String
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("blogs")
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  href      String?
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("banners")
+}
