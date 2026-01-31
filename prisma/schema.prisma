@@ -106,6 +106,7 @@ model Event {
   catererPhone        String
   
   thaalCount          Int            @default(0)
+  totalThaalsDone     Int?           // Actual thaals served (filled after event)
   sarkariThaalSet     Int            @default(0)
   bhaiSaabIzzan       Boolean        @default(false)
   benSaabIzzan        Boolean        @default(false)

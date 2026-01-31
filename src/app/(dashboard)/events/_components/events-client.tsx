@@ -369,6 +369,11 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, getStatusBadge }
                 <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-slate-400" />
                     <span>{event.thaalCount} Thaal</span>
+                    {event.totalThaalsDone && (
+                        <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">
+                            {event.totalThaalsDone} Done
+                        </span>
+                    )}
                 </div>
             </div>
 
