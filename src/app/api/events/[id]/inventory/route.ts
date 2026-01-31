@@ -92,6 +92,31 @@ export async function POST(
         },
       });
 
+      // Update EventInventory record (single source of truth for per-event allocations)
+      if (action === "ISSUE") {
+        await tx.eventInventory.upsert({
+          where: { eventId_itemId: { eventId, itemId } },
+          update: { issuedQty: { increment: quantity } },
+          create: { eventId, itemId, issuedQty: quantity },
+        });
+      } else if (action === "RETURN") {
+        await tx.eventInventory.update({
+          where: { eventId_itemId: { eventId, itemId } },
+          data: { returnedQty: { increment: quantity } },
+        });
+      } else if (action === "LOSS") {
+        await tx.eventInventory.update({
+          where: { eventId_itemId: { eventId, itemId } },
+          data: { lostQty: { increment: quantity } },
+        });
+      } else if (action === "FOUND") {
+        // Recovery from event inventory page - increment recovered
+        await tx.eventInventory.update({
+          where: { eventId_itemId: { eventId, itemId } },
+          data: { recoveredQty: { increment: quantity } },
+        });
+      }
+
       return updatedItem;
     });
 

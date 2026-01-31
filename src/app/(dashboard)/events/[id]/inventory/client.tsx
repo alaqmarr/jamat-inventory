@@ -16,6 +16,18 @@ import { InventoryItem, Event } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PrintManifest } from "./_components/print-manifest";
 
+// Type for database-backed inventory allocations
+interface EventInventoryAllocation {
+    id: string;
+    eventId: string;
+    itemId: string;
+    itemName: string;
+    issuedQty: number;
+    returnedQty: number;
+    lostQty: number;
+    recoveredQty: number;
+}
+
 export default function EventInventoryClient() {
     const params = useParams();
     const eventId = params.id as string;
@@ -23,6 +35,7 @@ export default function EventInventoryClient() {
 
     const [event, setEvent] = useState<Event | null>(null);
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [allocations, setAllocations] = useState<EventInventoryAllocation[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("inventory");
@@ -34,9 +47,10 @@ export default function EventInventoryClient() {
     // Fetch Data
     const fetchData = async () => {
         try {
-            const [eventRes, invRes, logsRes] = await Promise.all([
+            const [eventRes, invRes, allocRes, logsRes] = await Promise.all([
                 fetch(`/api/events/${eventId}`),
                 fetch("/api/inventory"),
+                fetch(`/api/events/${eventId}/allocations`),
                 fetch(`/api/events/${eventId}/logs`)
             ]);
 
@@ -47,6 +61,11 @@ export default function EventInventoryClient() {
             const invData = await invRes.json();
             setInventory(invData);
 
+            if (allocRes.ok) {
+                const allocData = await allocRes.json();
+                setAllocations(allocData);
+            }
+
             if (logsRes.ok) {
                 const logsData = await logsRes.json();
                 setLogs(logsData);
@@ -54,7 +73,6 @@ export default function EventInventoryClient() {
 
         } catch (error) {
             console.error(error);
-            // toast.error("Failed to load data");
         } finally {
             setIsLoading(false);
         }
@@ -134,32 +152,33 @@ export default function EventInventoryClient() {
     }
 
 
-    // Memoize stats for performance and filtering
+    // Memoize stats from database-backed allocations (single source of truth)
     const itemStats = useMemo(() => {
         const statsMap = new Map<string, { issued: number, returned: number, lost: number, deficit: number }>();
-        inventory.forEach(item => {
-            const itemLogs = logs.filter(log => (log.details?.itemId === item.id) || (log.itemId === item.id));
-            let issued = 0, returned = 0, lost = 0;
-            itemLogs.forEach(log => {
-                const qty = log.details?.quantity || log.quantity || 0;
-                const act = log.action.toUpperCase();
 
-                if (act.includes("ISSUE") || act.includes("REMOVED")) issued += qty;
-                else if (act.includes("RETURN")) returned += qty;
-                else if (act.includes("LOSS")) lost += qty;
-                else if (act.includes("FOUND")) {
-                    // Found means it was returned from "lost" state
-                    returned += qty;
-                    lost -= qty;
-                }
+        // Pre-populate from allocations
+        allocations.forEach(alloc => {
+            const effectiveReturned = alloc.returnedQty + alloc.recoveredQty;
+            const effectiveLost = Math.max(0, alloc.lostQty - alloc.recoveredQty);
+            const deficit = alloc.issuedQty - effectiveReturned - effectiveLost;
+
+            statsMap.set(alloc.itemId, {
+                issued: alloc.issuedQty,
+                returned: effectiveReturned,
+                lost: effectiveLost,
+                deficit: Math.max(0, deficit)
             });
-            // Ensure lost doesn't go below 0 (data integrity)
-            if (lost < 0) lost = 0;
-
-            statsMap.set(item.id, { issued, returned, lost, deficit: issued - returned - lost });
         });
+
+        // Ensure all inventory items are in the map (even if no allocations)
+        inventory.forEach(item => {
+            if (!statsMap.has(item.id)) {
+                statsMap.set(item.id, { issued: 0, returned: 0, lost: 0, deficit: 0 });
+            }
+        });
+
         return statsMap;
-    }, [inventory, logs]);
+    }, [inventory, allocations]);
 
     // Filter items
     const filteredInventory = inventory.filter(item => {

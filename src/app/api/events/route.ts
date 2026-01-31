@@ -139,8 +139,16 @@ export async function POST(req: Request) {
 
     const parsedDate = new Date(occasionDate);
 
+    // Generate meaningful event ID: YYYYMMDD-mobile-occasion
+    const { slugify } = await import("@/lib/utils");
+    const { format } = await import("date-fns");
+    const dateStr = format(parsedDate, "yyyyMMdd");
+    const occasionSlug = slugify(description).slice(0, 30);
+    const eventId = `${dateStr}-${mobile}-${occasionSlug}`;
+
     const newEvent = await prisma.event.create({
       data: {
+        id: eventId,
         mobile,
         name,
         email: email || null,

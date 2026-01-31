@@ -43,8 +43,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
+    // Generate meaningful ID from slugified name
+    const { slugify } = await import("@/lib/utils");
+    const itemId = slugify(name);
+
+    // Check for duplicate
+    const existing = await prisma.inventoryItem.findUnique({
+      where: { id: itemId },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: "Item with this name already exists" },
+        { status: 400 },
+      );
+    }
+
     const newItem = await prisma.inventoryItem.create({
       data: {
+        id: itemId,
         name,
         category,
         totalQuantity: Number(totalQuantity),

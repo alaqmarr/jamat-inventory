@@ -1,7 +1,19 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
-import { Event, InventoryLog } from "@/types";
+import { Event } from "@/types";
+
+// Type for database-backed inventory allocations
+interface EventInventoryAllocation {
+  id: string;
+  eventId: string;
+  itemId: string;
+  itemName: string;
+  issuedQty: number;
+  returnedQty: number;
+  lostQty: number;
+  recoveredQty: number;
+}
 
 const format12Hour = (timeStr: string | undefined | null) => {
   if (!timeStr || timeStr === "NA") return "NA";
@@ -19,7 +31,7 @@ const format12Hour = (timeStr: string | undefined | null) => {
 
 export const generateEventManifest = async (
   event: Event,
-  logs: InventoryLog[],
+  allocations: EventInventoryAllocation[],
 ) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
@@ -89,8 +101,8 @@ export const generateEventManifest = async (
   doc.text(`Contact: ${event.mobile}`, leftColX, yPos);
   doc.text(`Thaal Count: ${event.thaalCount}`, rightColX, yPos);
 
-  // -- Summary Stats --
-  const itemStats = itemsFromLogs(logs);
+  // -- Summary Stats (from database-backed allocations) --
+  const itemStats = itemsFromAllocations(allocations);
   const totalItems = itemStats.length;
   const totalIssued = itemStats.reduce((sum, i) => sum + i.issued, 0);
   const totalReturned = itemStats.reduce((sum, i) => sum + i.returned, 0);
@@ -320,47 +332,21 @@ function formatDeficit(deficit: number) {
   return `Surplus (+${Math.abs(deficit)})`;
 }
 
-function itemsFromLogs(logs: InventoryLog[]) {
-  const itemMap = new Map<
-    string,
-    { name: string; issued: number; returned: number; lost: number }
-  >();
-
-  logs.forEach((log) => {
-    // Robust Access
-    const itemId = log.itemId || (log as any).details?.itemId;
-    const itemName =
-      log.itemName || (log as any).details?.itemName || "Unknown Item";
-    const quantity = Number(
-      log.quantity || (log as any).details?.quantity || 0,
-    );
-
-    if (!itemId) return;
-
-    if (!itemMap.has(itemId)) {
-      itemMap.set(itemId, {
-        name: itemName,
-        issued: 0,
-        returned: 0,
-        lost: 0,
-      });
-    }
-    const entry = itemMap.get(itemId)!;
-
-    const action = log.action || "";
-    if (action.includes("ISSUE") || action.includes("REMOVED"))
-      entry.issued += quantity;
-    else if (action.includes("RETURN") || action.includes("RETURNED"))
-      entry.returned += quantity;
-    else if (action.includes("LOSS")) entry.lost += quantity;
-  });
-
-  // Sort by name
-  return Array.from(itemMap.values())
-    .map((entry) => ({
-      ...entry,
-      deficit: entry.issued - entry.returned - entry.lost,
-    }))
+// New function: Transform database allocations to stats for PDF
+function itemsFromAllocations(allocations: EventInventoryAllocation[]) {
+  return allocations
+    .map((alloc) => {
+      const effectiveReturned = alloc.returnedQty + alloc.recoveredQty;
+      const effectiveLost = Math.max(0, alloc.lostQty - alloc.recoveredQty);
+      const deficit = alloc.issuedQty - effectiveReturned - effectiveLost;
+      return {
+        name: alloc.itemName,
+        issued: alloc.issuedQty,
+        returned: effectiveReturned,
+        lost: effectiveLost,
+        deficit: Math.max(0, deficit),
+      };
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

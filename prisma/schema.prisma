@@ -66,7 +66,30 @@ model InventoryItem {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  // Relation to event allocations
+  eventAllocations  EventInventory[]
+
   @@map("inventory_items")
+}
+
+// Track inventory allocations per event - single source of truth
+model EventInventory {
+  id            String        @id @default(cuid())
+  eventId       String
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  itemId        String
+  item          InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  issuedQty     Int           @default(0)  // Total issued to this event
+  returnedQty   Int           @default(0)  // Total returned from this event
+  lostQty       Int           @default(0)  // Total reported lost
+  recoveredQty  Int           @default(0)  // Total recovered from lost
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([eventId, itemId])  // One record per event-item pair
+  @@map("event_inventory")
 }
 
 model Event {
@@ -112,6 +135,9 @@ model Event {
   
   createdBy           User?          @relation("CreatedBy", fields: [createdById], references: [id])
   createdById         String?
+
+  // Relation to inventory allocations
+  inventoryAllocations EventInventory[]
 
   @@map("events")
 }

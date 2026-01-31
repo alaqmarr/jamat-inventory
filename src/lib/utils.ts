@@ -16,3 +16,17 @@ export function getISTDate(date: string | Date | undefined | null): Date {
   // Add 5 hours 30 minutes in milliseconds
   return new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
 }
+
+/**
+ * Converts text to URL-friendly slug for generating meaningful IDs.
+ * Example: "Nikah Ceremony" → "nikah-ceremony"
+ */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "") // Remove special chars except spaces and hyphens
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Remove duplicate hyphens
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}

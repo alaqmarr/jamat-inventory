@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db";
 import { checkPageAccess, getCurrentRole } from "@/lib/rbac-server";
 import { Event, InventoryItem } from "@/types";
 import EventDetailsClient from "./_components/event-details-client";
-import { rtdb } from "@/lib/firebase"; // Keep RTDB for logs if available there
 import { getMisriDate } from "@/lib/misri-calendar";
 import { formatInTimeZone } from "date-fns-tz";
 
@@ -21,14 +20,14 @@ export default async function EventDetailsPage({ params }: PageProps) {
     if (!hasAccess) redirect("/unauthorized");
 
     try {
-        // Fetch event and inventory from Prisma
-        // Fetch logs? If we don't have a reliable source for logs yet, passing empty array is safer than breaking.
-        // But let's try to simulate fetching logs if we can, or just wait for logs migration.
-        // Given the instructions, we stick to safety.
-
-        const [event, inventory] = await Promise.all([
+        // Fetch event, inventory, and event allocations from Prisma
+        const [event, inventory, eventInventory] = await Promise.all([
             prisma.event.findUnique({ where: { id: eventId } }),
             prisma.inventoryItem.findMany(),
+            prisma.eventInventory.findMany({
+                where: { eventId },
+                include: { item: { select: { name: true } } },
+            }),
         ]);
 
         if (!event) {
@@ -41,34 +40,28 @@ export default async function EventDetailsPage({ params }: PageProps) {
             occasionDate: event.occasionDate.toISOString(),
             createdAt: event.createdAt.toISOString(),
             updatedAt: event.updatedAt.toISOString(),
-            // Ensure compatibility with Event type
         } as unknown as Event;
 
         const safeInventory = inventory.map(i => ({
             ...i,
         })) as unknown as InventoryItem[];
 
-        // Fetch logs from 'event_logs/{eventId}'
-        const logsRef = rtdb.ref(`event_logs/${eventId}`);
-        const logsSnapshot = await logsRef.once("value");
-        const safeLogs: any[] = [];
-        logsSnapshot.forEach((child) => {
-            safeLogs.push({ id: child.key, ...child.val() });
-        });
-        // Sort by timestamp desc
-        // Sort by timestamp desc
-        safeLogs.sort((a, b) => b.timestamp - a.timestamp);
+        // Transform eventInventory for client (single source of truth)
+        const safeAllocations = eventInventory.map(alloc => ({
+            id: alloc.id,
+            eventId: alloc.eventId,
+            itemId: alloc.itemId,
+            itemName: alloc.item.name,
+            issuedQty: alloc.issuedQty,
+            returnedQty: alloc.returnedQty,
+            lostQty: alloc.lostQty,
+            recoveredQty: alloc.recoveredQty,
+        }));
 
         // Fetch Hijri Date (Server Side) Algorithmic
         let hijriString = null;
         try {
-            // Create a date object from the event date string
             const d = new Date(formatInTimeZone(safeEvent.occasionDate, 'Asia/Kolkata', 'yyyy-MM-dd'));
-            // Verify if we need timezone adjustment?
-            // Usually occasionDate is stored as UTC.
-            // If we just pass it to getMisriDate, it uses the UTC date components.
-            // This matches the behavior in DashboardPage where we used Noon UTC.
-
             const hijriData = getMisriDate(d);
             hijriString = `${hijriData.formattedEn} / ${hijriData.formattedAr}`;
         } catch (e) {
@@ -79,7 +72,7 @@ export default async function EventDetailsPage({ params }: PageProps) {
             <EventDetailsClient
                 initialEvent={safeEvent}
                 initialInventory={safeInventory}
-                initialLogs={safeLogs}
+                initialAllocations={safeAllocations}
                 initialHijriDate={hijriString}
             />
         );
@@ -88,3 +81,4 @@ export default async function EventDetailsPage({ params }: PageProps) {
         notFound();
     }
 }
+

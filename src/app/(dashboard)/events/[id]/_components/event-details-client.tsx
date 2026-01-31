@@ -17,43 +17,58 @@ import { QRDialog } from "./qr-dialog";
 import { Separator } from "@/components/ui/separator";
 import { EventStepper } from "./event-stepper";
 
+// Type for database-backed inventory allocations
+interface EventInventoryAllocation {
+    id: string;
+    eventId: string;
+    itemId: string;
+    itemName: string;
+    issuedQty: number;
+    returnedQty: number;
+    lostQty: number;
+    recoveredQty: number;
+}
+
 interface EventDetailsClientProps {
     initialEvent: Event;
     initialInventory: InventoryItem[];
-    initialLogs: any[];
+    initialAllocations: EventInventoryAllocation[];
     initialHijriDate?: string | null;
 }
 
-export default function EventDetailsClient({ initialEvent, initialInventory, initialLogs, initialHijriDate }: EventDetailsClientProps) {
+export default function EventDetailsClient({ initialEvent, initialInventory, initialAllocations, initialHijriDate }: EventDetailsClientProps) {
     const router = useRouter();
     const { data: session } = useSession();
 
     const [event, setEvent] = useState<Event>(initialEvent);
     const [inventory] = useState<InventoryItem[]>(initialInventory);
-    const [logs] = useState<any[]>(initialLogs);
+    const [allocations] = useState<EventInventoryAllocation[]>(initialAllocations);
     const [hijriDate] = useState<string | null>(initialHijriDate || null);
 
+    // Get stats directly from database-backed allocations (single source of truth)
     const getItemStats = (itemId: string) => {
-        const itemLogs = logs.filter(log => (log.itemId === itemId) || (log.details?.itemId === itemId));
-        let issued = 0, returned = 0, lost = 0;
+        const allocation = allocations.find(a => a.itemId === itemId);
+        if (!allocation) return { issued: 0, returned: 0, lost: 0, deficit: 0 };
 
-        itemLogs.forEach(log => {
-            const qty = Number(log.quantity || log.details?.quantity || 0);
-            const action = log.action || "";
+        // returned includes recovered items
+        const effectiveReturned = allocation.returnedQty + allocation.recoveredQty;
+        // lost is reduced by recovered
+        const effectiveLost = Math.max(0, allocation.lostQty - allocation.recoveredQty);
+        // deficit = issued - returned - lost (what's still out)
+        const deficit = allocation.issuedQty - effectiveReturned - effectiveLost;
 
-            if (action.includes("ISSUE") || action.includes("REMOVED")) issued += qty;
-            else if (action.includes("RETURN") || action.includes("RETURNED")) returned += qty;
-            else if (action.includes("LOSS")) lost += qty;
-        });
-
-        const deficit = issued - returned - lost;
-        return { issued, returned, lost, deficit };
+        return {
+            issued: allocation.issuedQty,
+            returned: effectiveReturned,
+            lost: effectiveLost,
+            deficit: Math.max(0, deficit)
+        };
     };
 
-    // Filter inventory to only show items that were used (issued > 0)
+    // Filter inventory to only show items that were used (have allocations)
     const usedInventory = inventory.filter(item => {
-        const stats = getItemStats(item.id);
-        return stats.issued > 0 || stats.returned > 0;
+        const allocation = allocations.find(a => a.itemId === item.id);
+        return allocation && allocation.issuedQty > 0;
     });
 
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -149,7 +164,7 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                 <DropdownMenuItem onClick={() => router.push(`/events/${event.id}/print`)}>
                                     <Printer className="mr-2 h-4 w-4" /> Print View
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => generateEventManifest(event, logs)}>
+                                <DropdownMenuItem onClick={() => generateEventManifest(event, allocations)}>
                                     <FileText className="mr-2 h-4 w-4" /> Manifest PDF
                                 </DropdownMenuItem>
 
@@ -182,7 +197,7 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                         <Button variant="outline" onClick={() => router.push(`/events/${event.id}/print`)}>
                             <Printer className="mr-2 h-4 w-4" /> Print
                         </Button>
-                        <Button variant="outline" onClick={() => generateEventManifest(event, logs)}>
+                        <Button variant="outline" onClick={() => generateEventManifest(event, allocations)}>
                             <FileText className="mr-2 h-4 w-4" /> Manifest
                         </Button>
                         <QRDialog eventId={event.id} eventName={event.name} />
