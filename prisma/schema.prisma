@@ -275,15 +275,26 @@ model Banner {
 model Module {
   id          String   @id // Slugified from name (e.g., "manage-banners")
   name        String   @unique  // Display name: "Manage Banners"
-  path        String?            // Optional route path: "/admin/banners"
-  elementId   String?            // Optional element ID for granular control
   description String?
   icon        String?            // Lucide icon name
   createdAt   DateTime @default(now())
   
+  links       ModuleLink[]
   userAccess  UserModuleAccess[]
   
   @@map("modules")
+}
+
+// Multiple links per module - supports dynamic routes
+model ModuleLink {
+  id        String   @id @default(cuid())
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  path      String            // Route path (can include [params] for dynamic routes)
+  label     String?           // Optional display label for this specific link
+  order     Int      @default(0)
+  
+  @@map("module_links")
 }
 
 model UserModuleAccess {
@@ -298,3 +309,15 @@ model UserModuleAccess {
   @@unique([userId, moduleId])
   @@map("user_module_access")
 }
+
+model VerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("verification_codes")
+}
+

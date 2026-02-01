@@ -2,17 +2,29 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProfileCheck } from "@/components/profile-check";
 import { auth } from "@/lib/auth";
+import { checkModuleAccess } from "@/lib/rbac-server";
 import { Role } from "@/types";
+import { redirect } from "next/navigation";
+
 export const preferredRegion = ["sin1"];
+
 export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
     const session = await auth();
-    // Use role or default to something safe if undefined, though strict typing suggests it might be undefined
-    // sidebar handles undefined role gracefully
-    const role = (session?.user as any)?.role as Role | undefined;
+    const user = session?.user as any;
+    const role = user?.role as Role | undefined;
+
+    // Global module access check - user must have inventory-module access
+    // ADMIN bypasses this check (handled inside checkModuleAccess)
+    if (session?.user) {
+        const hasModuleAccess = await checkModuleAccess("inventory-module");
+        if (!hasModuleAccess) {
+            redirect("/unauthorized?reason=no-module-access");
+        }
+    }
 
     return (
         <div className="h-full relative min-h-screen bg-slate-50/50">
@@ -31,3 +43,4 @@ export default async function DashboardLayout({
         </div>
     );
 }
+

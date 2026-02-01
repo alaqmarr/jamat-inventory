@@ -38,8 +38,11 @@
     "/settings/data/sync": ["ADMIN"],
     "/settings/data/health": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
     "/settings/data/reset": ["ADMIN"],
+    "/settings/data": ["ADMIN"],
+    "/settings/email-test": ["ADMIN"],
 
-    "/users": ["ADMIN"]
+    "/users": ["ADMIN"],
+    "/users/add": ["ADMIN"]
   },
   "components": {
     "btn-event-create": ["ADMIN", "MANAGER"],
@@ -53,6 +56,15 @@
     "btn-inventory-edit": ["ADMIN", "MANAGER", "STAFF"],
     "btn-inventory-delete": ["ADMIN", "MANAGER", "STAFF"],
     "btn-inventory-bulk": ["ADMIN", "MANAGER", "STAFF"],
+
+    "inventory-module": ["ADMIN", "MANAGER", "STAFF"],
+    "events-module": ["ADMIN", "MANAGER", "STAFF", "WATCHER"],
+    "ledger-module": ["ADMIN", "MANAGER"],
+    "logs-module": ["ADMIN", "MANAGER"],
+    "users-module": ["ADMIN"],
+    "settings-module": ["ADMIN", "MANAGER"],
+    "system-module": ["ADMIN"],
+    "export-module": ["ADMIN", "MANAGER"],
 
     "btn-user-add": ["ADMIN"],
     "btn-user-edit": ["ADMIN"],

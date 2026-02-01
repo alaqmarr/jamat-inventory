@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import rbacConfig from "@/config/rbac.json";
 import { Role } from "@/generated/prisma/client";
 
@@ -46,3 +47,38 @@ export async function getCurrentRole(): Promise<Role | null> {
   const session = await auth();
   return (session?.user as any)?.role as Role | null;
 }
+
+/**
+ * Check if user has access to a specific module.
+ * ADMIN always bypasses this check.
+ * For other roles, checks the UserModuleAccess table in the database.
+ *
+ * @param moduleId - The module ID to check (e.g., "inventory-module")
+ * @returns true if user has access, false otherwise
+ */
+export async function checkModuleAccess(moduleId: string): Promise<boolean> {
+  const session = await auth();
+  const user = session?.user as any;
+  const userRole = user?.role as Role;
+  const userId = user?.id as string;
+
+  if (!userRole || !userId) return false;
+
+  // ADMIN bypasses all module checks
+  if (userRole === "ADMIN") return true;
+
+  // Query database for module access
+  const access = await prisma.userModuleAccess.findUnique({
+    where: {
+      userId_moduleId: {
+        userId,
+        moduleId,
+      },
+    },
+  });
+
+  return !!access;
+}
+
+// Alias for backward compatibility
+export const checkComponentAccess = checkModuleAccess;

@@ -3,12 +3,22 @@ import { rtdb } from "@/lib/firebase";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { logAction } from "@/lib/logger";
+import { checkComponentAccess } from "@/lib/rbac-server";
 
 export async function POST(req: Request) {
   try {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check inventory-module access (ADMIN bypasses)
+    const hasAccess = await checkComponentAccess("inventory-module");
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Forbidden - No inventory access" },
+        { status: 403 },
+      );
     }
 
     const { itemId, quantity, eventId, logId } = await req.json();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { checkComponentAccess } from "@/lib/rbac-server";
 
 export async function PATCH(
   req: Request,
@@ -11,8 +12,22 @@ export async function PATCH(
     const session = await auth();
     const userRole = (session?.user as any)?.role;
 
-    if (!session?.user || (userRole !== "ADMIN" && userRole !== "MANAGER")) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check inventory-module access first (ADMIN bypasses)
+    const hasAccess = await checkComponentAccess("inventory-module");
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Forbidden - No inventory access" },
+        { status: 403 },
+      );
+    }
+
+    // Layer 2: Role check
+    if (userRole !== "ADMIN" && userRole !== "MANAGER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -73,9 +88,22 @@ export async function DELETE(
     const session = await auth();
     const userRole = (session?.user as any)?.role;
 
-    // Only Admin can delete? Or Manager too? Let's allow Manager for now per other patterns, but confirm "Delete" in UI usually implies Admin/Manager.
-    if (!session?.user || (userRole !== "ADMIN" && userRole !== "MANAGER")) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check inventory-module access first (ADMIN bypasses)
+    const hasAccess = await checkComponentAccess("inventory-module");
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Forbidden - No inventory access" },
+        { status: 403 },
+      );
+    }
+
+    // Layer 2: Role check
+    if (userRole !== "ADMIN" && userRole !== "MANAGER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Check for dependencies? Prisma will throw if FK constraints prevent deletion without Cascade.

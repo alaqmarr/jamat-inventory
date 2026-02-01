@@ -19,17 +19,19 @@ import {
     LogOut,
     Grid,
     AlertTriangle,
-    Mail
+    Mail,
+    UserPlus
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRole } from "@/hooks/use-role";
+import { useRBAC } from "@/hooks/use-rbac";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react";
 
-// Route groups for visual hierarchy
+// Route groups - visibility controlled by role-based page access
 const routeGroups = [
     {
         label: "Main",
@@ -52,6 +54,7 @@ const routeGroups = [
         label: "Management",
         items: [
             { label: "Users", icon: Users, href: "/settings/users" },
+            { label: "Add User", icon: UserPlus, href: "/users/add" },
             { label: "Venues", icon: Building2, href: "/settings/venues" },
             { label: "Caterers", icon: ChefHat, href: "/settings/caterers" },
         ]
@@ -76,9 +79,23 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname();
     const { role, isLoading, user } = useRole();
+    const { canViewPage } = useRBAC();
     const [isOpen, setIsOpen] = useState(false);
 
     if (isLoading) return null;
+
+    // Filter route items based on role-based page access
+    const getVisibleItems = (items: typeof routeGroups[0]['items']) => {
+        return items.filter(item => canViewPage(item.href));
+    };
+
+    // Filter groups to only show those with visible items
+    const visibleGroups = routeGroups
+        .map(group => ({
+            ...group,
+            items: getVisibleItems(group.items)
+        }))
+        .filter(group => group.items.length > 0);
 
     const SidebarContent = () => (
         <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
@@ -97,7 +114,7 @@ export function Sidebar({ className }: SidebarProps) {
 
             {/* Navigation */}
             <div className="flex-1 overflow-y-auto px-3 py-2 space-y-6">
-                {routeGroups.map((group) => (
+                {visibleGroups.map((group) => (
                     <div key={group.label}>
                         <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-3 mb-2">
                             {group.label}
