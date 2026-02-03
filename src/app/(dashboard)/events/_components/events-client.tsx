@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { format, isPast, isToday, isFuture } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getMisriDate } from "@/lib/misri-calendar";
-import { cn, getISTDate } from "@/lib/utils";
+import { cn, getISTDate, isEventLocked } from "@/lib/utils";
 import {
     Plus,
     Calendar as CalendarIcon,
@@ -17,11 +17,13 @@ import {
     Ban,
     AlertTriangle,
     Users,
-    Utensils
+    Utensils,
+    ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RBACWrapper } from "@/components/rbac-wrapper";
 import {
@@ -315,10 +317,42 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, getStatusBadge }
     const isCancelled = event.status === "CANCELLED";
     const istDate = getISTDate(event.occasionDate);
     const hijri = getMisriDate(istDate);
+    const [razaGranted, setRazaGranted] = useState(event.razaGranted || false);
+
+    const handleRazaToggle = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newValue = !razaGranted;
+        setRazaGranted(newValue); // Optimistic
+
+        try {
+            const res = await fetch(`/api/events/${event.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ razaGranted: newValue }),
+            });
+            if (!res.ok) throw new Error("Failed");
+            toast.success(newValue ? "Raza Granted" : "Raza Revoked");
+            router.refresh();
+        } catch (err) {
+            setRazaGranted(!newValue); // Revert
+            toast.error("Failed to update Raza status");
+        }
+    };
+
+    // Card Colors: Cancelled (Grey), Raza Granted (Subtle Green), Raza Pending (Subtle Orange)
+    // Note: status === CANCELLED overrides everything
+    let cardBgClass = "bg-white";
+    if (isCancelled) {
+        cardBgClass = "bg-slate-50 opacity-60";
+    } else {
+        cardBgClass = razaGranted
+            ? "bg-emerald-50 border-emerald-200 hover:bg-emerald-100/50"
+            : "bg-orange-50 border-orange-200 hover:bg-orange-100/50";
+    }
 
     return (
         <Card
-            className={`cursor-pointer p-5 ${isCancelled ? 'opacity-60' : ''}`}
+            className={`cursor-pointer p-5 transition-colors duration-300 ${cardBgClass}`}
             onClick={() => router.push(`/events/${event.id}`)}
         >
             {/* Header with Date Block & Status */}
@@ -326,7 +360,7 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, getStatusBadge }
                 <div className="flex items-center gap-3">
                     <div className={cn(
                         "flex flex-col items-center justify-center w-12 h-12 rounded-lg",
-                        isCancelled ? "bg-slate-100 text-slate-400" : "bg-emerald-50 text-emerald-600"
+                        isCancelled ? "bg-slate-100 text-slate-400" : (razaGranted ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700")
                     )}>
                         <span className="text-[10px] font-bold uppercase">
                             {format(istDate, "MMM")}
@@ -343,7 +377,10 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, getStatusBadge }
                             {event.name}
                         </h3>
                         {event.description && (
-                            <p className="text-sm font-medium text-emerald-600/90 truncate max-w-[180px] mt-0.5">
+                            <p className={cn(
+                                "text-sm font-medium truncate max-w-[180px] mt-0.5",
+                                razaGranted ? "text-emerald-700" : "text-orange-700"
+                            )}>
                                 {event.description}
                             </p>
                         )}
@@ -379,24 +416,42 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, getStatusBadge }
 
             {/* Admin Actions */}
             {isAdmin && (
-                <div className="flex justify-end gap-1 pt-3 border-t border-slate-100">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => { e.stopPropagation(); router.push(`/events/${event.id}/edit`); }}
-                        disabled={isCancelled}
-                    >
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={(e) => handleDeleteClick(e, event.id)}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
+                <div className={`flex justify-between items-center pt-3 border-t ${razaGranted ? 'border-emerald-200' : 'border-orange-200'}`}>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                            checked={razaGranted}
+                            onCheckedChange={() => { }}
+                            onClick={handleRazaToggle}
+                            className="data-[state=checked]:bg-emerald-600 data-[state=unchecked]:bg-orange-400"
+                            disabled={isCancelled || isEventLocked(event.occasionDate)}
+                        />
+                        <span className={`text-xs font-bold uppercase tracking-wider ${razaGranted ? 'text-emerald-700' : 'text-orange-700'}`}>
+                            {razaGranted ? "Raza Granted" : "Raza Pending"}
+                        </span>
+                    </div>
+
+                    <div className="flex gap-1">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 w-8 p-0 ${razaGranted ? 'hover:bg-emerald-100 text-emerald-700' : 'hover:bg-orange-100 text-orange-700'}`}
+                            onClick={(e) => { e.stopPropagation(); router.push(`/events/${event.id}/edit`); }}
+                            disabled={isCancelled || isEventLocked(event.occasionDate)}
+                            title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Edit Event"}
+                        >
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={(e) => handleDeleteClick(e, event.id)}
+                            disabled={isEventLocked(event.occasionDate)}
+                            title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Delete Event"}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             )}
         </Card>

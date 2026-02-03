@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { format, subHours, addHours } from "date-fns";
 import { Loader2, AlertTriangle, Package, History, Plus, Minus, AlertCircle, Search, CheckSquare } from "lucide-react";
+import { isEventLocked } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -320,7 +321,7 @@ export default function EventInventoryClient() {
                                 </TableBody>
                             </Table>
                         </div>
-                        {canManageInventory && (
+                        {canManageInventory && !isEventLocked(event.occasionDate) && (
                             <div className="flex justify-end gap-3 pb-8">
                                 <Button
                                     onClick={() => handleBulkAction("ISSUE")}
@@ -334,6 +335,11 @@ export default function EventInventoryClient() {
                                 >
                                     Return All
                                 </Button>
+                            </div>
+                        )}
+                        {isEventLocked(event.occasionDate) && (
+                            <div className="text-center pb-8 text-amber-600 italic">
+                                Inventory actions are locked because this event ended more than 48 hours ago.
                             </div>
                         )}
                     </div>
@@ -382,7 +388,7 @@ export default function EventInventoryClient() {
                         </CardContent>
                     </Card>
                 )}
-            </div>
+            </div >
             <PrintManifest event={event} inventory={inventory} itemStats={itemStats} />
         </>
     );

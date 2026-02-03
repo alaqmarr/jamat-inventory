@@ -12,6 +12,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Event, InventoryItem } from "@/types";
 import { useSession } from "next-auth/react";
 import { RBACWrapper } from "@/components/rbac-wrapper";
@@ -20,6 +22,7 @@ import { QRDialog } from "./qr-dialog";
 import { Separator } from "@/components/ui/separator";
 import { EventStepper } from "./event-stepper";
 import { toast } from "sonner";
+import { isEventLocked } from "@/lib/utils";
 
 // Type for database-backed inventory allocations
 interface EventInventoryAllocation {
@@ -82,6 +85,53 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
     const [thaalDrawerOpen, setThaalDrawerOpen] = useState(false);
     const [thaalServedCount, setThaalServedCount] = useState("");
     const [isSavingThaal, setIsSavingThaal] = useState(false);
+
+    // Payment Dialog State
+    const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+    const [paymentMode, setPaymentMode] = useState<"CASH" | "UPI">("CASH");
+    const [transactionId, setTransactionId] = useState("");
+    const [isSavingPayment, setIsSavingPayment] = useState(false);
+
+    const handlePrint = () => {
+        // Pre-fill if exists
+        if ((event as any).paymentMode) setPaymentMode((event as any).paymentMode);
+        if ((event as any).transactionId) setTransactionId((event as any).transactionId);
+        setPaymentDialogOpen(true);
+    };
+
+    const handleConfirmPrint = async () => {
+        if (paymentMode === "UPI" && !transactionId) {
+            toast.error("Please enter Transaction ID for UPI");
+            return;
+        }
+
+        setIsSavingPayment(true);
+        try {
+            const res = await fetch(`/api/events/${event.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    paymentMode,
+                    transactionId: paymentMode === "UPI" ? transactionId : null
+                }),
+            });
+
+            if (!res.ok) throw new Error("Failed to save payment info");
+
+            // Update local state
+            setEvent(prev => ({ ...prev, paymentMode, transactionId } as any));
+            toast.success("Payment info saved");
+            setPaymentDialogOpen(false);
+
+            // Navigate to print page
+            router.push(`/events/${event.id}/print`);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to save payment info");
+        } finally {
+            setIsSavingPayment(false);
+        }
+    };
 
     // Update Thaal Served
     const handleUpdateThaalServed = async () => {
@@ -160,8 +210,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
     return (
         <div className="space-y-6 md:space-y-8 max-w-7xl mx-auto p-4 md:p-8 animate-in fade-in duration-500 pb-24 md:pb-20">
             {/* Page Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
-                <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
+            <div className="border-b pb-6 space-y-6">
+                <div className="flex items-center gap-3 md:gap-4">
                     <Button
                         variant="outline"
                         size="icon"
@@ -170,7 +220,7 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     >
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <div className="flex-1 md:flex-none">
+                    <div>
                         <div className="flex flex-wrap items-center gap-2 md:gap-3">
                             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground line-clamp-1">{event.name}</h1>
                             {isCancelled && <Badge variant="destructive" className="h-6">CANCELLED</Badge>}
@@ -182,8 +232,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     </div>
                 </div>
 
-                {/* Actions: Desktop vs Mobile */}
-                <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                {/* Actions Bar - Separated Tab-like area */}
+                <div className="flex flex-wrap items-center gap-2 pt-2">
                     {/* Mobile: Manage Inventory takes full width, Menu for others */}
                     <div className="md:hidden flex flex-1 gap-2">
                         <Button
@@ -200,7 +250,7 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => router.push(`/events/${event.id}/print`)}>
+                                <DropdownMenuItem onClick={handlePrint}>
                                     <Printer className="mr-2 h-4 w-4" /> Print View
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => generateEventManifest(event, allocations)}>
@@ -233,7 +283,7 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
 
                     {/* Desktop: Full Buttons */}
                     <div className="hidden md:flex flex-wrap items-center gap-2">
-                        <Button variant="outline" onClick={() => router.push(`/events/${event.id}/print`)}>
+                        <Button variant="outline" onClick={handlePrint}>
                             <Printer className="mr-2 h-4 w-4" /> Print
                         </Button>
                         <Button variant="outline" onClick={() => generateEventManifest(event, allocations)}>
@@ -250,7 +300,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                             <Button
                                 variant="outline"
                                 onClick={() => router.push(`/events/${event.id}/edit`)}
-                                disabled={isCancelled}
+                                disabled={isCancelled || isEventLocked(event.occasionDate)}
+                                title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Edit Event"}
                             >
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                             </Button>
@@ -258,13 +309,21 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                         <Button
                             onClick={() => router.push(`/events/${event.id}/inventory`)}
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            disabled={isCancelled}
+                            disabled={isCancelled || isEventLocked(event.occasionDate)}
+                            title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Manage Inventory"}
                         >
                             <Package className="mr-2 h-4 w-4" /> Manage Inventory
                         </Button>
 
                         <RBACWrapper componentId="btn-event-delete">
-                            <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteEvent(false)}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteEvent(false)}
+                                disabled={isEventLocked(event.occasionDate)}
+                                title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Delete Event"}
+                            >
                                 <Trash2 className="h-5 w-5" />
                             </Button>
                         </RBACWrapper>
@@ -480,6 +539,20 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                         <span className="text-sm font-medium text-slate-500 uppercase tracking-wide">Thaal Count</span>
                                         <span className="text-4xl font-bold text-slate-900">{event.thaalCount}</span>
                                     </div>
+
+                                    {/* Public Event Hall Breakdown */}
+                                    {((event as any).eventType === "PUBLIC" && (event as any).hallCounts) && (
+                                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm space-y-1">
+                                            <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Hall Breakdown</p>
+                                            {Object.entries((event as any).hallCounts).map(([hall, count]) => (
+                                                <div key={hall} className="flex justify-between">
+                                                    <span className="text-slate-600">{hall}</span>
+                                                    <span className="font-medium text-slate-900">{count as number}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {event.totalThaalsDone && (
                                         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
                                             <div className="flex items-center justify-between">
@@ -596,6 +669,52 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     </div>
                 </div>
             )}
+
+            {/* Payment Dialog for Print */}
+            <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Payment Details</DialogTitle>
+                        <DialogDescription>
+                            Please confirm payment details proceed to print.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Payment Mode</Label>
+                            <RadioGroup value={paymentMode} onValueChange={(v: "CASH" | "UPI") => setPaymentMode(v)} className="flex gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="CASH" id="mode-cash" />
+                                    <Label htmlFor="mode-cash">Cash</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="UPI" id="mode-upi" />
+                                    <Label htmlFor="mode-upi">UPI / Online</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+
+                        {paymentMode === "UPI" && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <Label htmlFor="tx-id">Transaction ID <span className="text-red-500">*</span></Label>
+                                <Input
+                                    id="tx-id"
+                                    placeholder="Enter UPI Transaction ID"
+                                    value={transactionId}
+                                    onChange={(e) => setTransactionId(e.target.value)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleConfirmPrint} disabled={isSavingPayment} className="bg-emerald-600 hover:bg-emerald-700">
+                            {isSavingPayment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Save & Print
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Thaal Served Update Drawer */}
             <Drawer open={thaalDrawerOpen} onOpenChange={setThaalDrawerOpen}>

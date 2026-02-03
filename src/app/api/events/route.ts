@@ -16,45 +16,33 @@ export async function GET(req: Request) {
     let whereClause = {};
 
     if (date) {
+      // Parse the input date string safely
       const targetDate = new Date(date);
-      // Assume 'date' parameter is the intended day.
-      // We want the full day range in IST for that specific date.
-      // But 'date' from client usually comes as ISO string or YYYY-MM-DD?
-      // If client sends YYYY-MM-DD, `new Date(date)` might be UTC midnight.
 
-      // Let's parse strictly.
-      // If date is "2026-01-27T00:00:00.000Z", we might just want to use it as anchor.
+      if (!isNaN(targetDate.getTime())) {
+        // Create start and end of day in UTC roughly corresponding to the query
+        // If date is YYYY-MM-DD, we want that full day in IST.
+        // Let's use date-fns-tz or just simple ISO range if strict.
+        // Simpler: Just match the date part of the string if possible?
+        // Database stores DateTime.
 
-      // Robust extraction of Y/M/D from the input date object (assuming it represents the target day properly)
-      // Actually, let's treat the input `date` as ANY time within the target IST day.
-      const options: Intl.DateTimeFormatOptions = {
-        timeZone: "Asia/Kolkata",
-        year: "numeric",
-        month: "numeric",
-        day: "numeric",
-      };
-      const formatter = new Intl.DateTimeFormat([], options);
-      const parts = formatter.formatToParts(targetDate);
-      const year = parseInt(parts.find((p) => p.type === "year")?.value || "0");
-      const month =
-        parseInt(parts.find((p) => p.type === "month")?.value || "0") - 1;
-      const day = parseInt(parts.find((p) => p.type === "day")?.value || "0");
+        // Let's assume input 'date' is YYYY-MM-DD.
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
 
-      // Construct Start of IST Day in UTC
-      const startOfDay = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
-      startOfDay.setHours(startOfDay.getHours() - 5);
-      startOfDay.setMinutes(startOfDay.getMinutes() - 30);
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
 
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setHours(endOfDay.getHours() + 24);
-      endOfDay.setMilliseconds(-1);
-
-      whereClause = {
-        occasionDate: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      };
+        // Adjust for potential timezone offsets of the server environment
+        // If we want specific IST day:
+        // We can use the Prisma date filtering more broadly or handle it:
+        whereClause = {
+          occasionDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        };
+      }
     }
 
     const events = await prisma.event.findMany({

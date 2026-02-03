@@ -30,3 +30,19 @@ export function slugify(text: string): string {
     .replace(/-+/g, "-") // Remove duplicate hyphens
     .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
 }
+
+/**
+ * Checks if an event is "locked" (ended more than 48 hours ago).
+ * Locked events cannot be edited, deleted, or cancelled.
+ * @param eventDate string or Date object of the event occasion
+ */
+export function isEventLocked(
+  eventDate: string | Date | undefined | null,
+): boolean {
+  if (!eventDate) return false;
+  const date = new Date(eventDate);
+  const now = new Date();
+  // 48 hours in milliseconds = 48 * 60 * 60 * 1000 = 172800000
+  const diff = now.getTime() - date.getTime();
+  return diff > 172800000;
+}

@@ -16,7 +16,11 @@ export default async function EventsPage() {
 
     try {
         const events = await prisma.event.findMany({
-            orderBy: { occasionDate: 'asc' }
+            orderBy: [
+                { occasionDate: 'asc' },
+                { occasionTime: 'asc' },
+                { createdAt: 'desc' }
+            ]
         });
 
         initialEvents = events.map(event => ({

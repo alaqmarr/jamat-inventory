@@ -103,9 +103,13 @@ export default function EventPrintPage() {
         fetchEvent();
     }, [eventId]);
 
-    // Calculate Grand Total
+    // Calculate Grand Total ( Excluding Deposit )
     const calculateGrandTotal = () => {
-        const total = Object.values(lagatAmounts).reduce((acc, curr) => acc + (Number(curr) || 0), 0);
+        let total = 0;
+        Object.entries(lagatAmounts).forEach(([key, val]) => {
+            if (key === "deposit") return; // Exclude deposit from grand total
+            total += (Number(val) || 0);
+        });
         return total;
     };
 
@@ -135,8 +139,7 @@ export default function EventPrintPage() {
             }
         });
 
-
-
+        // Exclude Deposit from this list as it's shown separately
         return entries.filter(e => Number(e.value) > 0);
     };
 
@@ -166,12 +169,11 @@ export default function EventPrintPage() {
                     if (count > 0) rate = formatForPdf(totalVal / count);
                 } else {
                     // For other items, treat as qty 1 or fixed
-                    if (e.label.includes("Cost") && !e.label.includes("Thaal") && !e.label.includes("Sarkari")) {
-                        // Hall costs
+                    if (e.label.includes("Cost") || e.label.includes("Hall")) {
+                        // Hall costs or generic cost params
                         qty = "1";
                         rate = formatForPdf(totalVal);
                     }
-                    // Kitchen, Decoration, Deposit -> Qty "-", Rate "-" (or implies fixed)
                 }
 
                 return {
@@ -185,7 +187,7 @@ export default function EventPrintPage() {
             // Transform to format for PDF: { items: [{label, quantity, rate, total}], grandTotal }
             const pdfData = {
                 items: entriesFormatted,
-                grandTotal: formatForPdf(grandTotal),
+                grandTotal: formatForPdf(grandTotal), // This is now exclusive of deposit
                 deposit: Number(lagatAmounts.deposit) > 0 ? formatForPdf(lagatAmounts.deposit) : undefined,
             };
             generateMiqaatBookingForm(event, hijriDate, hijriDateAr, pdfData);
@@ -392,7 +394,7 @@ export default function EventPrintPage() {
                                             </tr>
                                         )}
                                         <tr>
-                                            <td className="border border-slate-300 p-2 text-right font-bold bg-slate-50">GRAND TOTAL</td>
+                                            <td className="border border-slate-300 p-2 text-right font-bold bg-slate-50">GRAND TOTAL (Excl. Deposit)</td>
                                             <td className="border border-slate-300 p-2 text-right font-bold bg-slate-100">{formatCurrency(grandTotal)}</td>
                                         </tr>
                                     </tbody>

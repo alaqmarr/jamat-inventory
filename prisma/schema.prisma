@@ -134,6 +134,14 @@ model Event {
   eventType           EventType      @default(PRIVATE)
   hallCounts          Json?          // Stores { "Hall A": 50, "Hall B": 30 }
   
+  // Payment Info
+  paymentMode         String?        // "CASH" | "UPI"
+  transactionId       String?        // UPI Transaction ID
+  
+  razaGranted         Boolean        @default(false)
+  
+  refundedDate        DateTime?      // For refundable deposit tracking on print (Manual entry mostly, but useful)
+  
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   

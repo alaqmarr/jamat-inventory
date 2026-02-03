@@ -59,7 +59,8 @@ export interface Event {
   menu: string;
 
   eventType?: "PUBLIC" | "PRIVATE";
-  hallCounts?: Record<string, number>;
+  transactionId?: string; // UPI Transaction ID
+  razaGranted?: boolean;
 
   createdAt: string;
   updatedAt?: string;

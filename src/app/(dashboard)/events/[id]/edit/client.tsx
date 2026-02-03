@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, AlertCircle } from "lucide-react";
+import { CalendarIcon, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { cn, isEventLocked } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Event } from "@/types";
@@ -184,7 +184,7 @@ export default function EditEventClient() {
                     masjidLight: event.masjidLight,
                     menu: event.menu,
                     eventType: (event.eventType as "PUBLIC" | "PRIVATE") || "PRIVATE",
-                    hallCounts: (event.hallCounts as Record<string, number>) || {},
+                    hallCounts: ((event as any).hallCounts as Record<string, number>) || {},
                     acStartTime: event.acStartTime || "",
                     partyTime: event.partyTime || "",
                     decorations: event.decorations || false,
@@ -304,6 +304,16 @@ export default function EditEventClient() {
                 <h1 className="text-3xl font-bold text-gray-800">Edit Event</h1>
                 <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
             </div>
+
+            {isEventLocked(form.getValues("occasionDate")) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-center gap-3 text-amber-800">
+                    <AlertTriangle className="h-5 w-5" />
+                    <div>
+                        <p className="font-bold">Event is Locked</p>
+                        <p className="text-sm">This event ended more than 48 hours ago and cannot be edited.</p>
+                    </div>
+                </div>
+            )}
 
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -573,8 +583,8 @@ export default function EditEventClient() {
                         </CardContent>
                     </Card>
 
-                    <Button id="btn-event-update-submit" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-lg py-6" disabled={isSaving}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Event"}
+                    <Button id="btn-event-update-submit" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-lg py-6" disabled={isSaving || isEventLocked(form.getValues("occasionDate"))}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isEventLocked(form.getValues("occasionDate")) ? "Event Locked" : "Update Event")}
                     </Button>
                 </form>
             </Form>
