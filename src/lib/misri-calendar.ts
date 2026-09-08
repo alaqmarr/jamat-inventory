@@ -1,3 +1,5 @@
+import { formatInTimeZone } from "date-fns-tz";
+
 export const MISRI_MONTH_NAMES_EN = [
   "Moharram-ul-Haraam",
   "Safar-ul-Muzaffar",
@@ -37,31 +39,36 @@ const MISRI_EPOCH_JD = 1948439;
 function getJulianDay(date: Date): number {
   const time = date.getTime();
   const tzOffset = date.getTimezoneOffset() * 60 * 1000;
-  // Add timezone offset to get UTC time roughly, but better to rely on UTC date methods or raw timestamp
-  // JD = (UnixTime / 86400000.0) + 2440587.5
-  // But we want the integer day number starting at noon?
-  // Canonical calculation:
   return Math.floor((time - tzOffset) / 86400000.0) + 2440587.5;
 }
 
 // Convert Gregorian Date to Misri Date
-export function getMisriDate(date: Date) {
-  // 1. Calculate Julian Day
-  // Adjust for local time being passed in. We assume the input date is "Noon" of the day we want to convert
-  // to avoid boundary issues.
-  // If the user selects "Jan 28", we want the JD for Jan 28.
+export function getMisriDate(date: Date | string) {
+  // Extract year, month, day anchored to Asia/Kolkata (IST) to prevent host timezone drift
+  let year: number;
+  let month: number;
+  let day: number;
 
-  // Create a UTC date for the same 'day' to avoid timezone shifts affecting the integer math
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
+  if (typeof date === "string" && !date.includes("T")) {
+    const parts = date.trim().split("-").map(Number);
+    year = parts[0];
+    month = parts[1] - 1;
+    day = parts[2];
+  } else {
+    const d = typeof date === "string" ? new Date(date) : date;
+    const dateStr = formatInTimeZone(d, "Asia/Kolkata", "yyyy-MM-dd");
+    const parts = dateStr.split("-").map(Number);
+    year = parts[0];
+    month = parts[1] - 1;
+    day = parts[2];
+  }
 
   // Algorithm from "Astronomical Algorithms" (Jean Meeus) for JD
   // Simplified for our purpose since we use standard JS Date to get values
-  let a = Math.floor((14 - (month + 1)) / 12);
-  let y = year + 4800 - a;
-  let m = month + 1 + 12 * a - 3;
-  let jd =
+  const a = Math.floor((14 - (month + 1)) / 12);
+  const y = year + 4800 - a;
+  const m = month + 1 + 12 * a - 3;
+  const jd =
     day +
     Math.floor((153 * m + 2) / 5) +
     365 * y +
@@ -71,7 +78,7 @@ export function getMisriDate(date: Date) {
     32045;
 
   // Days since Misri Epoch
-  let daysSince = jd - MISRI_EPOCH_JD;
+  const daysSince = jd - MISRI_EPOCH_JD;
 
   // 2. 30-Year Cycles
   // Days in 30 years = (19 * 354) + (11 * 355) = 6726 + 3905 = 10631

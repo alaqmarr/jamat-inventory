@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { formatIST } from "@/lib/utils";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -185,7 +186,7 @@ export const newEventTemplate = (data: {
   hall: string | string[];
   thaalCount: number;
 }) => {
-  const dateStr = new Date(data.occasionDate).toDateString();
+  const dateStr = formatIST(data.occasionDate, "EEEE, MMM dd yyyy");
   const hallStr = Array.isArray(data.hall) ? data.hall.join(", ") : data.hall;
 
   const content = `

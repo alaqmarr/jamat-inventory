@@ -50,10 +50,8 @@ export async function POST(req: Request) {
     }
 
     // 2. Parse Proposed Time
-    const proposedDate = new Date(occasionDate);
-    const [hours, minutes] = occasionTime.split(":").map(Number);
-    const proposedStart = new Date(proposedDate);
-    proposedStart.setHours(hours, minutes, 0, 0);
+    const { parseISTEventDateTime, getISTDayBounds } = await import("@/lib/utils");
+    const proposedStart = parseISTEventDateTime(occasionDate, occasionTime);
 
     const proposedEnd = new Date(
       proposedStart.getTime() + eventDurationMinutes * 60000,
@@ -64,12 +62,11 @@ export async function POST(req: Request) {
       proposedStart.getTime() - BUFFER_MINUTES * 60000,
     );
 
-    // 3. Query Events for the same day (and previous day to catch adjacent buffer overlaps)
-    const queryStart = new Date(proposedEffectiveStart);
-    queryStart.setHours(0, 0, 0, 0);
-
-    const queryEnd = new Date(proposedEnd);
-    queryEnd.setHours(23, 59, 59, 999);
+    // 3. Query Events for the proposed day (and adjacent day for buffer overlaps)
+    const { startOfDay } = getISTDayBounds(proposedEffectiveStart);
+    const { endOfDay } = getISTDayBounds(proposedEnd);
+    const queryStart = new Date(startOfDay.getTime() - 24 * 60 * 60 * 1000);
+    const queryEnd = new Date(endOfDay.getTime() + 24 * 60 * 60 * 1000);
 
     const events = await prisma.event.findMany({
       where: {
@@ -92,12 +89,7 @@ export async function POST(req: Request) {
 
     for (const event of events) {
       // Parse Existing Event Time
-      const eventDate = new Date(event.occasionDate);
-      const [eHours, eMinutes] = event.occasionTime.split(":").map(Number);
-
-      // Construct event start time on its correct date
-      const eventStart = new Date(eventDate);
-      eventStart.setHours(eHours, eMinutes, 0, 0);
+      const eventStart = parseISTEventDateTime(event.occasionDate, event.occasionTime);
       const eventEnd = new Date(
         eventStart.getTime() + eventDurationMinutes * 60000,
       );

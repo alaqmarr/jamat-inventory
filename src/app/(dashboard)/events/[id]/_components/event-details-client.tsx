@@ -22,7 +22,7 @@ import { QRDialog } from "./qr-dialog";
 import { Separator } from "@/components/ui/separator";
 import { EventStepper } from "./event-stepper";
 import { toast } from "sonner";
-import { isEventLocked } from "@/lib/utils";
+import { isEventLocked, formatIST, parseISTEventDateTime } from "@/lib/utils";
 
 // Type for database-backed inventory allocations
 interface EventInventoryAllocation {
@@ -183,7 +183,7 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                         </div>
                         <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
                             <Calendar className="h-3.5 w-3.5" />
-                            {format(new Date(event.occasionDate), "PPP")} at {event.occasionTime}
+                            {formatIST(event.occasionDate, "EEEE, PPP")} at {event.occasionTime}
                         </div>
                     </div>
                 </div>
@@ -256,8 +256,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                             <Button
                                 variant="outline"
                                 onClick={() => router.push(`/events/${event.id}/edit`)}
-                                disabled={isCancelled || isEventLocked(event.occasionDate)}
-                                title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Edit Event"}
+                                disabled={isCancelled || isEventLocked(event.occasionDate, event.occasionTime)}
+                                title={isEventLocked(event.occasionDate, event.occasionTime) ? "Event Locked (Ended > 48h ago)" : "Edit Event"}
                             >
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                             </Button>
@@ -265,8 +265,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                         <Button
                             onClick={() => router.push(`/events/${event.id}/inventory`)}
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            disabled={isCancelled || isEventLocked(event.occasionDate)}
-                            title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Manage Inventory"}
+                            disabled={isCancelled || isEventLocked(event.occasionDate, event.occasionTime)}
+                            title={isEventLocked(event.occasionDate, event.occasionTime) ? "Event Locked (Ended > 48h ago)" : "Manage Inventory"}
                         >
                             <Package className="mr-2 h-4 w-4" /> Manage Inventory
                         </Button>
@@ -277,8 +277,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                 size="icon"
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => handleDeleteEvent(false)}
-                                disabled={isEventLocked(event.occasionDate)}
-                                title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Delete Event"}
+                                disabled={isEventLocked(event.occasionDate, event.occasionTime)}
+                                title={isEventLocked(event.occasionDate, event.occasionTime) ? "Event Locked (Ended > 48h ago)" : "Delete Event"}
                             >
                                 <Trash2 className="h-5 w-5" />
                             </Button>
@@ -293,10 +293,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     <h2 className="text-base font-semibold text-slate-800">Event Progress</h2>
                 </div>
                 {(() => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const eventDate = new Date(event.occasionDate);
-                    eventDate.setHours(0, 0, 0, 0);
+                    const todayStr = formatIST(new Date(), "yyyy-MM-dd");
+                    const eventDateStr = formatIST(event.occasionDate, "yyyy-MM-dd");
 
                     // Compute aggregates
                     let totalIssued = 0;
@@ -316,7 +314,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     let step = 0; // Booked
 
                     const msPerHour = 1000 * 60 * 60;
-                    const hoursSinceEvent = (today.getTime() - eventDate.getTime()) / msPerHour;
+                    const eventDateTime = parseISTEventDateTime(event.occasionDate, event.occasionTime);
+                    const hoursSinceEvent = (Date.now() - eventDateTime.getTime()) / msPerHour;
 
                     if (event.status === "COMPLETED") {
                         step = 4; // Settled
@@ -326,11 +325,11 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                         step = 1; // Dispatched
 
                         // If today matches event date
-                        if (today.getTime() === eventDate.getTime()) {
+                        if (todayStr === eventDateStr) {
                             step = 2; // Active
                         }
                         // If today is after event date OR full returns started
-                        else if (today > eventDate) {
+                        else if (todayStr > eventDateStr) {
                             step = 3; // Returning
                         }
 
@@ -344,9 +343,9 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                     let settlementInfo = "";
                     if (step === 4) {
                         if (hoursSinceEvent > 48) {
-                            const settleDate = new Date(eventDate);
+                            const settleDate = new Date(eventDateTime);
                             settleDate.setHours(settleDate.getHours() + 48);
-                            settlementInfo = `Auto-Settled: ${format(settleDate, "MMM d, h:mm a")}`;
+                            settlementInfo = `Auto-Settled: ${formatIST(settleDate, "MMM d, h:mm a")}`;
                         } else {
                             settlementInfo = "Settled: Inventory Match";
                         }
@@ -535,7 +534,7 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                     <span className="text-xs font-semibold text-slate-500 uppercase">Occasion & Timeline</span>
                                     <div className="text-right">
                                         <span className="text-sm font-bold text-slate-900 block">{event.description}</span>
-                                        <span className="text-xs text-slate-500 block mt-0.5">{format(new Date(event.occasionDate), "PPP")}</span>
+                                        <span className="text-xs text-slate-500 block mt-0.5">{formatIST(event.occasionDate, "EEEE, PPP")}</span>
                                         <span className="text-xs font-medium text-emerald-600 block mt-0.5 flex flex-col gap-0.5 items-end">
                                             {hijriDate ? (
                                                 <>

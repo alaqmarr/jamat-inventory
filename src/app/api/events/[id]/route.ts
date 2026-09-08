@@ -49,12 +49,9 @@ export async function PATCH(
     // Handle date conversion if occasionDate is provided
     const updateData: any = { ...updateFields };
     if (updateFields.occasionDate) {
+      const { formatIST } = await import("@/lib/utils");
       updateData.occasionDate = new Date(updateFields.occasionDate);
-      updateData.occasionDay = new Date(
-        updateFields.occasionDate,
-      ).toLocaleDateString("en-US", {
-        weekday: "long",
-      });
+      updateData.occasionDay = formatIST(updateData.occasionDate, "EEEE");
     }
 
     // Handle hall array

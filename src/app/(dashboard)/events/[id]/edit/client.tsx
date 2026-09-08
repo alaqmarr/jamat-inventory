@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn, isEventLocked } from "@/lib/utils";
+import { cn, isEventLocked, formatIST } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Event } from "@/types";
@@ -120,7 +120,7 @@ export default function EditEventClient() {
     useEffect(() => {
         if (occasionDate) {
             setIsLoadingHijri(true);
-            const dateStr = format(occasionDate, "yyyy-MM-dd");
+            const dateStr = formatIST(occasionDate, "yyyy-MM-dd");
             fetch(`/api/services/hijri-date?date=${dateStr}`)
                 .then(r => r.json())
                 .then(data => {
@@ -306,7 +306,7 @@ export default function EditEventClient() {
                 <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
             </div>
 
-            {isEventLocked(form.getValues("occasionDate")) && (
+            {isEventLocked(form.getValues("occasionDate"), form.getValues("occasionTime")) && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-center gap-3 text-amber-800">
                     <AlertTriangle className="h-5 w-5" />
                     <div>
@@ -584,8 +584,8 @@ export default function EditEventClient() {
                         </CardContent>
                     </Card>
 
-                    <Button id="btn-event-update-submit" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-lg py-6" disabled={isSaving || isEventLocked(form.getValues("occasionDate"))}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isEventLocked(form.getValues("occasionDate")) ? "Event Locked" : "Update Event")}
+                    <Button id="btn-event-update-submit" type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-lg py-6" disabled={isSaving || isEventLocked(form.getValues("occasionDate"), form.getValues("occasionTime"))}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isEventLocked(form.getValues("occasionDate"), form.getValues("occasionTime")) ? "Event Locked" : "Update Event")}
                     </Button>
                 </form>
             </Form>

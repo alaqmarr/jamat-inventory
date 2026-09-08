@@ -59,19 +59,41 @@ export function SharedCalendar({ onDateSelect, onEventSelect, embedded = false, 
                     const data: Event[] = await res.json();
 
                     const calendarEvents = data.map(event => {
-                        // Use getISTDate to parse the occasionDate string into a local Date object representing the IST day.
-                        // The time components from occasionTime are then applied to this base date.
+                        // Parse time components safely (support 24h & 12h)
+                        let hours = 10;
+                        let minutes = 0;
+                        if (event.occasionTime) {
+                            const clean = event.occasionTime.trim();
+                            const match12 = clean.match(/^(\d{1,2}):(\d{2})\s*([apAP][mM])$/);
+                            if (match12) {
+                                let h = parseInt(match12[1], 10);
+                                const m = parseInt(match12[2], 10);
+                                const ampm = match12[3].toUpperCase();
+                                if (ampm === "PM" && h < 12) h += 12;
+                                if (ampm === "AM" && h === 12) h = 0;
+                                hours = h;
+                                minutes = m;
+                            } else {
+                                const match24 = clean.match(/^(\d{1,2}):(\d{2})/);
+                                if (match24) {
+                                    hours = parseInt(match24[1], 10);
+                                    minutes = parseInt(match24[2], 10);
+                                }
+                            }
+                        }
+
+                        // Extract IST day components so the calendar grid shows the event on its correct date
                         const dateObj = getISTDate(event.occasionDate);
                         const year = dateObj.getFullYear();
                         const month = dateObj.getMonth();
                         const day = dateObj.getDate();
-                        const [hours, minutes] = event.occasionTime.split(":").map(Number);
 
                         let start = new Date(year, month, day, hours, minutes, 0, 0);
-                        if (isNaN(start.getTime())) start = new Date(); // Fallback
+                        if (isNaN(start.getTime())) {
+                            start = new Date(year, month, day, 10, 0, 0, 0); // Fallback to 10:00 on the same event day, NOT Today
+                        }
 
-                        const end = new Date(start);
-                        end.setHours(start.getHours() + 3);
+                        const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
 
                         return {
                             id: event.id,

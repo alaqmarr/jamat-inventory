@@ -38,7 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn, getISTDate } from "@/lib/utils";
+import { cn, formatIST } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LagatDrawer } from "@/components/events/lagat-drawer";
@@ -474,7 +474,7 @@ export default function NewEventPage() {
                     </Button>
                     <div className="flex-1">
                         <h1 className="text-2xl font-bold tracking-tight text-foreground">New Booking</h1>
-                        <p className="text-muted-foreground text-sm">Step {step} of {steps.length} • {format(getISTDate(new Date()), "EEEE, MMMM d")}</p>
+                        <p className="text-muted-foreground text-sm">Step {step} of {steps.length} • {formatIST(new Date(), "EEEE, MMMM d")}</p>
                     </div>
                     <div className="hidden md:flex items-center gap-2 bg-secondary px-4 py-2 rounded-lg">
                         <FileText className="h-4 w-4 text-muted-foreground" />
@@ -585,7 +585,7 @@ export default function NewEventPage() {
                                                                     !field.value && "text-muted-foreground"
                                                                 )}
                                                             >
-                                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                                {field.value ? formatIST(field.value, "EEEE, PPP") : <span>Pick a date</span>}
                                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                             </Button>
                                                         </FormControl>
@@ -1027,7 +1027,7 @@ export default function NewEventPage() {
                                                 <p className="text-slate-500">{form.getValues("mobile")}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="font-medium">{format(form.getValues("occasionDate"), "PPP")}</p>
+                                                <p className="font-medium">{formatIST(form.getValues("occasionDate"), "EEEE, PPP")}</p>
                                                 <p className="text-slate-500">{form.getValues("occasionTime")}</p>
                                             </div>
                                         </div>

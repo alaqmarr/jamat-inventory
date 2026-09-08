@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { startOfDay } from "date-fns";
+import { getISTDayBounds } from "@/lib/utils";
 
 export async function GET() {
   try {
-    const today = startOfDay(new Date());
+    const { startOfDay: today } = getISTDayBounds(new Date());
 
     // 1. Try to find the nearest UPCOMING event (including today)
     const upcomingEvent = await prisma.event.findFirst({

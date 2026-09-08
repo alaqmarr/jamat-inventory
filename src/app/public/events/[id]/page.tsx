@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { format } from "date-fns";
+import { formatIST } from "@/lib/utils";
 import { Loader2, Calendar, MapPin, Phone, User, Package, CheckCircle2, Clock } from "lucide-react";
 import { Event } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,7 +106,7 @@ export default function PublicEventPage() {
                                 <CardTitle className="text-3xl font-bold text-slate-800">{event.description}</CardTitle>
                                 <div className="flex items-center text-slate-500 mt-2 font-medium">
                                     <Calendar className="h-4 w-4 mr-2 text-amber-600" />
-                                    {format(new Date(event.occasionDate), "EEEE, MMMM do, yyyy")}
+                                    {formatIST(event.occasionDate, "EEEE, MMMM do, yyyy")}
                                     <span className="mx-2">•</span>
                                     <Clock className="h-4 w-4 mr-2 text-amber-600" />
                                     {event.occasionTime}

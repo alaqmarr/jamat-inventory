@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { formatIST } from "@/lib/utils";
 
 const toArabicNumerals = (str: string) => {
   return str.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
@@ -58,12 +58,7 @@ export async function getHijriDate(
   date: Date | string,
 ): Promise<HijriDate | null> {
   try {
-    const dateStr =
-      typeof date === "string" ? date : format(date, "yyyy-MM-dd");
-    // Ensure we handle the format correctly if a full ISO string is passed
-    const formattedDate = dateStr.includes("T")
-      ? format(new Date(dateStr), "yyyy-MM-dd")
-      : dateStr;
+    const formattedDate = formatIST(date, "yyyy-MM-dd");
 
     const targetUrl = `https://aajnodin.com/?gdate=${formattedDate}`;
     const res = await fetch(targetUrl, {
@@ -82,7 +77,7 @@ export async function getHijriDate(
     );
 
     if (match && match[1]) {
-      let hijriEn = match[1]
+      const hijriEn = match[1]
         .replace(/&nbsp;/g, " ")
         .replace(/\s+/g, " ")
         .trim();

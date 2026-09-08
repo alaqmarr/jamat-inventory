@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { format, isPast, isToday, isFuture } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getMisriDate } from "@/lib/misri-calendar";
-import { cn, getISTDate, isEventLocked } from "@/lib/utils";
+import { cn, getISTDate, formatIST, isEventLocked } from "@/lib/utils";
 import {
     Plus,
     Calendar as CalendarIcon,
@@ -158,12 +158,14 @@ export default function EventsPage({ initialEvents }: EventsPageProps) {
         }
     };
 
+    const todayStr = formatIST(new Date(), "yyyy-MM-dd");
+
     const getStatusBadge = (event: Event) => {
         if (event.status === "CANCELLED") return <Badge variant="destructive">Cancelled</Badge>;
 
-        const date = getISTDate(event.occasionDate);
-        if (isToday(date)) return <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-200 shadow-none">Today</Badge>;
-        if (isFuture(date)) return <Badge className="bg-indigo-500/15 text-indigo-700 hover:bg-indigo-500/25 border-indigo-200 shadow-none">Upcoming</Badge>;
+        const eventDateStr = formatIST(event.occasionDate, "yyyy-MM-dd");
+        if (eventDateStr === todayStr) return <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-200 shadow-none">Today</Badge>;
+        if (eventDateStr > todayStr) return <Badge className="bg-indigo-500/15 text-indigo-700 hover:bg-indigo-500/25 border-indigo-200 shadow-none">Upcoming</Badge>;
         return <Badge variant="secondary" className="bg-slate-100 text-slate-500 hover:bg-slate-200 border-slate-200 shadow-none">Past</Badge>;
     };
 
@@ -172,9 +174,9 @@ export default function EventsPage({ initialEvents }: EventsPageProps) {
 
 
     // Event counts (using IST dates)
-    const todayCount = events.filter(e => isToday(getISTDate(e.occasionDate)) && e.status !== "CANCELLED").length;
-    const upcomingCount = events.filter(e => isFuture(getISTDate(e.occasionDate)) && e.status !== "CANCELLED").length;
-    const pastCount = events.filter(e => isPast(getISTDate(e.occasionDate)) && !isToday(getISTDate(e.occasionDate))).length;
+    const todayCount = events.filter(e => e.status !== "CANCELLED" && formatIST(e.occasionDate, "yyyy-MM-dd") === todayStr).length;
+    const upcomingCount = events.filter(e => e.status !== "CANCELLED" && formatIST(e.occasionDate, "yyyy-MM-dd") > todayStr).length;
+    const pastCount = events.filter(e => e.status !== "CANCELLED" && formatIST(e.occasionDate, "yyyy-MM-dd") < todayStr).length;
     const cancelledCount = events.filter(e => e.status === "CANCELLED").length;
 
     return (
@@ -380,8 +382,7 @@ export default function EventsPage({ initialEvents }: EventsPageProps) {
 
 function EventCard({ event, router, isAdmin, handleDeleteClick, handleRazaClick, getStatusBadge }: any) {
     const isCancelled = event.status === "CANCELLED";
-    const istDate = getISTDate(event.occasionDate);
-    const hijri = getMisriDate(istDate);
+    const hijri = getMisriDate(event.occasionDate);
     const razaGranted = event.razaGranted || false;
 
     // Card Colors: Cancelled (Grey), Raza Granted (Subtle Green), Raza Pending (Subtle Orange)
@@ -408,10 +409,10 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, handleRazaClick,
                         isCancelled ? "bg-slate-100 text-slate-400" : (razaGranted ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700")
                     )}>
                         <span className="text-[10px] font-bold uppercase">
-                            {format(istDate, "MMM")}
+                            {formatIST(event.occasionDate, "MMM")}
                         </span>
                         <span className="text-lg font-bold leading-none">
-                            {format(istDate, "d")}
+                            {formatIST(event.occasionDate, "d")}
                         </span>
                     </div>
                     <div>
@@ -432,7 +433,7 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, handleRazaClick,
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                             <span className="flex items-center gap-0.5">
                                 <Clock className="w-3 h-3" />
-                                {event.occasionTime}
+                                {formatIST(event.occasionDate, "EEEE")} • {event.occasionTime}
                             </span>
                             <span className="text-slate-300">•</span>
                             <span>{hijri.formattedEn}</span>
@@ -468,7 +469,7 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, handleRazaClick,
                             onCheckedChange={() => { }}
                             onClick={(e) => handleRazaClick(e, event)}
                             className="data-[state=checked]:bg-emerald-600 data-[state=unchecked]:bg-orange-400"
-                            disabled={isCancelled || isEventLocked(event.occasionDate)}
+                            disabled={isCancelled || isEventLocked(event.occasionDate, event.occasionTime)}
                         />
                         <span className={`text-xs font-bold uppercase tracking-wider ${razaGranted ? 'text-emerald-700' : 'text-orange-700'}`}>
                             {razaGranted ? "Raza Granted" : "Raza Pending"}
@@ -481,8 +482,8 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, handleRazaClick,
                             size="sm"
                             className={`h-8 w-8 p-0 ${razaGranted ? 'hover:bg-emerald-100 text-emerald-700' : 'hover:bg-orange-100 text-orange-700'}`}
                             onClick={(e) => { e.stopPropagation(); router.push(`/events/${event.id}/edit`); }}
-                            disabled={isCancelled || isEventLocked(event.occasionDate)}
-                            title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Edit Event"}
+                            disabled={isCancelled || isEventLocked(event.occasionDate, event.occasionTime)}
+                            title={isEventLocked(event.occasionDate, event.occasionTime) ? "Event Locked (Ended > 48h ago)" : "Edit Event"}
                         >
                             <Edit className="h-4 w-4" />
                         </Button>
@@ -491,8 +492,8 @@ function EventCard({ event, router, isAdmin, handleDeleteClick, handleRazaClick,
                             size="sm"
                             className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
                             onClick={(e) => handleDeleteClick(e, event.id)}
-                            disabled={isEventLocked(event.occasionDate)}
-                            title={isEventLocked(event.occasionDate) ? "Event Locked (Ended > 48h ago)" : "Delete Event"}
+                            disabled={isEventLocked(event.occasionDate, event.occasionTime)}
+                            title={isEventLocked(event.occasionDate, event.occasionTime) ? "Event Locked (Ended > 48h ago)" : "Delete Event"}
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>

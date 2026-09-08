@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
+import { formatIST } from "@/lib/utils";
 import { Event } from "@/types";
 
 // Type for database-backed inventory allocations
@@ -85,7 +86,7 @@ export const generateEventManifest = async (
   let yPos = detailsY + 8;
 
   doc.text(
-    `Date: ${format(new Date(event.occasionDate), "PPP")}`,
+    `Date: ${formatIST(event.occasionDate, "EEEE, PPP")}`,
     leftColX,
     yPos,
   );
@@ -165,7 +166,7 @@ export const generateEventManifest = async (
 
   // Calculate Ref ID for Footer
   // Calculate Ref ID for Footer
-  const refId = `${format(new Date(event.occasionDate), "ddMMyyyy")}-${event.mobile}`;
+  const refId = `${formatIST(event.occasionDate, "yyyyMMdd")}-${event.mobile}`;
 
   autoTable(doc, {
     startY: yPos + 40,
@@ -458,7 +459,7 @@ export const generateMiqaatBookingForm = async (
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text(
-    `${format(new Date(event.occasionDate), "PPP")}   ${format12Hour(event.occasionTime)}`,
+    `${formatIST(event.occasionDate, "EEEE, PPP")}   ${format12Hour(event.occasionTime)}`,
     col2X,
     currentY + 9,
   );
@@ -873,7 +874,7 @@ export const generateMiqaatBookingForm = async (
 
   // -- Standard Footer (Manifest Style) --
   // -- Standard Footer (Manifest Style) --
-  const refId = `${format(new Date(event.occasionDate), "ddMMyyyy")}-${event.mobile}`;
+  const refId = `${formatIST(event.occasionDate, "yyyyMMdd")}-${event.mobile}`;
 
   // We attach this to didDrawPage in a cleaner way if we used it above, but here we can just draw it on current page (and assuming single page for now).
   // Ideally use didDrawPage hook if multi-page.

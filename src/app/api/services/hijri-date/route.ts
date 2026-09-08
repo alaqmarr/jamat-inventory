@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getMisriDate } from "@/lib/misri-calendar";
-import { format } from "date-fns";
+import { formatIST } from "@/lib/utils";
 
 // External Hijri Calendar API
 const HIJRI_API_URL = "https://hijricalendar.alaqmar.dev/api/hijri";
@@ -9,32 +9,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const dateParam = searchParams.get("date") || searchParams.get("gDate");
 
-  let date: Date;
-  if (dateParam) {
-    // Parse "YYYY-MM-DD" as UTC Midnight
-    date = new Date(dateParam);
-  } else {
-    // Default to Today IST
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istTime = new Date(now.getTime() + istOffset);
-    // Create UTC date mirroring the IST components
-    date = new Date(
-      Date.UTC(
-        istTime.getUTCFullYear(),
-        istTime.getUTCMonth(),
-        istTime.getUTCDate(),
-        12,
-        0,
-        0,
-      ),
-    );
-  }
-
-  // Format date as IST for external API (YYYY-MM-DD)
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const istDate = new Date(date.getTime() + istOffset);
-  const formattedDate = format(istDate, "yyyy-MM-dd");
+  const effectiveDate = dateParam ? dateParam : new Date();
+  const formattedDate = formatIST(effectiveDate, "yyyy-MM-dd");
 
   try {
     // Try external API first
@@ -60,7 +36,7 @@ export async function GET(request: Request) {
   } catch (error) {
     // Fallback to local calculation
     try {
-      const hijri = getMisriDate(date);
+      const hijri = getMisriDate(formattedDate);
 
       return NextResponse.json({
         hijri: hijri.formattedEn,

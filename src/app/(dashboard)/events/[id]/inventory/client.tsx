@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { format, subHours, addHours } from "date-fns";
 import { Loader2, AlertTriangle, Package, History, Plus, Minus, AlertCircle, Search, CheckSquare } from "lucide-react";
-import { isEventLocked } from "@/lib/utils";
+import { isEventLocked, formatIST } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -203,7 +203,7 @@ export default function EventInventoryClient() {
                         <p className="text-slate-500 flex items-center gap-2 mt-1">
                             <span className="font-semibold">{event.name}</span>
                             <span>•</span>
-                            <span>{format(new Date(event.occasionDate), "PPP")}</span>
+                            <span>{formatIST(event.occasionDate, "EEEE, PPP")}</span>
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -321,7 +321,7 @@ export default function EventInventoryClient() {
                                 </TableBody>
                             </Table>
                         </div>
-                        {canManageInventory && !isEventLocked(event.occasionDate) && (
+                        {canManageInventory && !isEventLocked(event.occasionDate, event.occasionTime) && (
                             <div className="flex justify-end gap-3 pb-8">
                                 <Button
                                     onClick={() => handleBulkAction("ISSUE")}
@@ -337,7 +337,7 @@ export default function EventInventoryClient() {
                                 </Button>
                             </div>
                         )}
-                        {isEventLocked(event.occasionDate) && (
+                        {isEventLocked(event.occasionDate, event.occasionTime) && (
                             <div className="text-center pb-8 text-amber-600 italic">
                                 Inventory actions are locked because this event ended more than 48 hours ago.
                             </div>

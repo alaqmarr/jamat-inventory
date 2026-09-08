@@ -24,15 +24,21 @@ import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 
-// Helper to parse "HH:mm AM/PM" time string relative to a base date
-const parseEventTime = (timeStr: string, baseDate: Date) => {
-    try {
-        // Try parsing "hh:mm a" (e.g. 08:30 PM)
-        return parse(timeStr, "hh:mm a", baseDate);
-    } catch (e) {
-        // Fallback or explicit handling if needed
-        return baseDate;
-    }
+// Helper to parse time string ("HH:mm", "hh:mm a", "h:mm a") relative to a base date
+const parseEventTime = (timeStr: string, baseDate: Date): Date => {
+    if (!timeStr) return baseDate;
+    const clean = timeStr.trim();
+    // Try 24-hour format first (HH:mm)
+    let parsed = parse(clean, "HH:mm", baseDate);
+    if (!isNaN(parsed.getTime())) return parsed;
+    // Try 12-hour format with AM/PM
+    parsed = parse(clean, "hh:mm a", baseDate);
+    if (!isNaN(parsed.getTime())) return parsed;
+    parsed = parse(clean, "h:mm a", baseDate);
+    if (!isNaN(parsed.getTime())) return parsed;
+    parsed = parse(clean, "h:mma", baseDate);
+    if (!isNaN(parsed.getTime())) return parsed;
+    return baseDate;
 };
 import { useRouter } from "next/navigation";
 import { enGB } from "date-fns/locale";

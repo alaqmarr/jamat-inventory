@@ -1,4 +1,5 @@
 import { Event, InventoryItem } from "@/types";
+import { formatIST } from "@/lib/utils";
 import { format } from "date-fns";
 
 interface PrintManifestProps {
@@ -60,7 +61,7 @@ export function PrintManifest({ event, inventory, itemStats }: PrintManifestProp
                 {/* Event Info (Added since header info is gone) */}
                 <div className="mb-6">
                     <h2 className="text-2xl font-bold text-slate-900">{event.name}</h2>
-                    <p className="text-slate-600">{format(new Date(event.occasionDate), "PPP")}</p>
+                    <p className="text-slate-600">{formatIST(event.occasionDate, "EEEE, PPP")}</p>
                 </div>
 
                 {/* Inventory Table */}
@@ -130,7 +131,7 @@ export function PrintManifest({ event, inventory, itemStats }: PrintManifestProp
                     </div>
                     <div className="text-right">
                         <p className="text-slate-900 font-mono font-bold text-sm tracking-widest">{refId}</p>
-                        <p className="text-slate-400 text-[10px] mt-1">Generated: {format(new Date(), "PPP p")}</p>
+                        <p className="text-slate-400 text-[10px] mt-1">Generated: {formatIST(new Date(), "EEEE, PPP p")}</p>
                     </div>
                 </div>
                 <div className="text-center mt-4">

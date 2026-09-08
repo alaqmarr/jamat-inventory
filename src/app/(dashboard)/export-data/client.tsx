@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { getEventsForExport } from "@/app/actions/export";
-import { cn } from "@/lib/utils";
+import { cn, formatIST } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 export default function ExportDataClient() {
@@ -78,7 +78,7 @@ export default function ExportDataClient() {
                 "Event Name": event.name,
                 "Booker Mobile": event.mobile,
                 "Email": event.email || "",
-                "Occasion Date": format(new Date(event.occasionDate), "yyyy-MM-dd"),
+                "Occasion Date": formatIST(event.occasionDate, "yyyy-MM-dd"),
                 "Occasion Time": event.occasionTime,
                 "Day": event.occasionDay || "",
                 "Type": event.eventType,

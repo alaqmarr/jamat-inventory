@@ -1,5 +1,6 @@
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium-min";
+import { formatIST } from "@/lib/utils";
 
 export async function generatePdf(html: string): Promise<Buffer> {
   let browser;
@@ -98,7 +99,7 @@ export const eventPdfTemplate = (event: any) => {
             </div>
             <div style="text-align: right;">
                 <div class="label">Date & Time</div>
-                <div class="value">${new Date(event.occasionDate).toDateString()} - ${event.occasionTime}</div>
+                <div class="value">${formatIST(event.occasionDate, "EEEE, MMM dd yyyy")} - ${event.occasionTime}</div>
             </div>
         </div>
 

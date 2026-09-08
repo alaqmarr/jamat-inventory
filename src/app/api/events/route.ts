@@ -16,33 +16,14 @@ export async function GET(req: Request) {
     let whereClause = {};
 
     if (date) {
-      // Parse the input date string safely
-      const targetDate = new Date(date);
-
-      if (!isNaN(targetDate.getTime())) {
-        // Create start and end of day in UTC roughly corresponding to the query
-        // If date is YYYY-MM-DD, we want that full day in IST.
-        // Let's use date-fns-tz or just simple ISO range if strict.
-        // Simpler: Just match the date part of the string if possible?
-        // Database stores DateTime.
-
-        // Let's assume input 'date' is YYYY-MM-DD.
-        const startOfDay = new Date(targetDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(targetDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        // Adjust for potential timezone offsets of the server environment
-        // If we want specific IST day:
-        // We can use the Prisma date filtering more broadly or handle it:
-        whereClause = {
-          occasionDate: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-        };
-      }
+      const { getISTDayBounds } = await import("@/lib/utils");
+      const { startOfDay, endOfDay } = getISTDayBounds(date);
+      whereClause = {
+        occasionDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      };
     }
 
     const events = await prisma.event.findMany({
@@ -128,9 +109,9 @@ export async function POST(req: Request) {
     const parsedDate = new Date(occasionDate);
 
     // Generate meaningful event ID: YYYYMMDD-mobile-occasion
-    const { slugify } = await import("@/lib/utils");
-    const { format } = await import("date-fns");
-    const dateStr = format(parsedDate, "yyyyMMdd");
+    const { slugify, formatIST } = await import("@/lib/utils");
+    const dateStr = formatIST(parsedDate, "yyyyMMdd");
+    const occasionDay = formatIST(parsedDate, "EEEE");
     const occasionSlug = slugify(description).slice(0, 30);
     const eventId = `${dateStr}-${mobile}-${occasionSlug}`;
 
@@ -141,9 +122,7 @@ export async function POST(req: Request) {
         name,
         email: email || null,
         occasionDate: parsedDate,
-        occasionDay: parsedDate.toLocaleDateString("en-US", {
-          weekday: "long",
-        }),
+        occasionDay,
         occasionTime: occasionTime || "",
         description,
         hall: Array.isArray(hall) ? hall : [hall],

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { getISTDayBounds } from "@/lib/utils";
 
 export async function getEventsForExport(startDate: Date, endDate: Date) {
   const session = await auth();
@@ -10,11 +11,14 @@ export async function getEventsForExport(startDate: Date, endDate: Date) {
   }
 
   try {
+    const { startOfDay } = getISTDayBounds(startDate);
+    const { endOfDay } = getISTDayBounds(endDate);
+
     const events = await prisma.event.findMany({
       where: {
         occasionDate: {
-          gte: startDate,
-          lte: endDate,
+          gte: startOfDay,
+          lte: endOfDay,
         },
       },
       orderBy: {
