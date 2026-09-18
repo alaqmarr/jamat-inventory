@@ -78,7 +78,7 @@ export default function ExportDataClient() {
                 "Event Name": event.name,
                 "Booker Mobile": event.mobile,
                 "Email": event.email || "",
-                "Occasion Date": formatIST(event.occasionDate, "yyyy-MM-dd"),
+                "Occasion Date": formatIST(event.occasionDate, "EEEE, dd-MMM-yyyy"),
                 "Occasion Time": event.occasionTime,
                 "Day": event.occasionDay || "",
                 "Type": event.eventType,
