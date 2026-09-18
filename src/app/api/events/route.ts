@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
     const events = await prisma.event.findMany({
       where: whereClause,
-      orderBy: { occasionDate: "asc" },
+      orderBy: { occasionDate: "desc" },
     });
 
     // Transform dates to ISO strings for compatibility

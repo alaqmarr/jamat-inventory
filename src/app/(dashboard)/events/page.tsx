@@ -17,8 +17,8 @@ export default async function EventsPage() {
     try {
         const events = await prisma.event.findMany({
             orderBy: [
-                { occasionDate: 'asc' },
-                { occasionTime: 'asc' },
+                { occasionDate: 'desc' },
+                { occasionTime: 'desc' },
                 { createdAt: 'desc' }
             ]
         });
