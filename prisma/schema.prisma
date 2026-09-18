@@ -131,6 +131,7 @@ model Event {
   totalThaalsDone     Int?           // Actual thaals served (filled after event)
   sarkariThaalSet     Int            @default(0)
   bhaiSaabIzzan       Boolean        @default(false)
+  muraqebeenIzzan     Boolean        @default(false)
   benSaabIzzan        Boolean        @default(false)
   extraChilamchiLota  Int            @default(0)
   tablesAndChairs     Int            @default(0)

@@ -227,6 +227,11 @@ export default function EventPrintPage() {
 
     const handleDownloadChecklist = () => {
         if (event) {
+            const formatForPdf = (val: number | string) => {
+                const num = Number(val) || 0;
+                return "Rs. " + new Intl.NumberFormat('en-IN').format(num);
+            };
+
             // Need same pdfData formatting but it doesn't matter for checklist 
             // since rates/totals are ignored, but we still need the items array.
             let grandTotal = calculateGrandTotal();
