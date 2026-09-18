@@ -40,6 +40,7 @@ export interface Event {
   totalThaalsDone?: number; // Actual thaals served (filled after event)
   sarkariThaalSet: number;
   bhaiSaabIzzan: boolean;
+  muraqebeenIzzan: boolean;
   benSaabIzzan: boolean;
   extraChilamchiLota: number;
   tablesAndChairs: number;

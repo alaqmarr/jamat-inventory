@@ -225,6 +225,56 @@ export default function EventPrintPage() {
         }
     }
 
+    const handleDownloadChecklist = () => {
+        if (event) {
+            // Need same pdfData formatting but it doesn't matter for checklist 
+            // since rates/totals are ignored, but we still need the items array.
+            let grandTotal = calculateGrandTotal();
+            const entriesFormatted = Object.entries(lagatAmounts)
+                .filter(([key, val]) => val !== "" && key !== "deposit" && (Number(val) > 0 || isNaN(Number(val)) || val === "0"))
+                .map(([key, val]) => {
+                    const e = getLagatEntries().find(e => e.label.toLowerCase().includes(key.toLowerCase()) || 
+                        (key === "other" && e.label === "Other Misc") ||
+                        (key.startsWith("cost_hall_") && e.label === key.replace("cost_hall_", ""))
+                    );
+                    if (!e) return { label: key, quantity: "1", rate: "0", total: "0" };
+
+                    let qty = "";
+                    let rate = "";
+                    const totalVal = Number(val) || 0;
+
+                    if (key === "thaal") {
+                        const count = Number(event.thaalCount) || 0;
+                        qty = String(count);
+                        if (count > 0) rate = formatForPdf(totalVal / count);
+                    } else if (key === "sarkari") {
+                        const count = Number(event.sarkariThaalSet) || 0;
+                        qty = String(count);
+                        if (count > 0) rate = formatForPdf(totalVal / count);
+                    } else {
+                        qty = "1";
+                        rate = formatForPdf(totalVal);
+                    }
+
+                    return {
+                        label: e.label,
+                        quantity: qty,
+                        rate: rate,
+                        total: formatForPdf(totalVal)
+                    };
+                });
+
+            const pdfData = {
+                items: entriesFormatted,
+                grandTotal: formatForPdf(grandTotal),
+                deposit: Number(lagatAmounts.deposit) > 0 ? formatForPdf(lagatAmounts.deposit) : undefined,
+                paymentMode: paymentMode,
+                transactionId: paymentMode === "UPI" ? transactionId : undefined
+            };
+            generateMiqaatBookingForm(event, hijriDate, hijriDateAr, pdfData, true); // true for isChecklist
+        }
+    }
+
     if (isLoading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
     if (!event) return <div className="p-10 text-center text-red-500">Event not found</div>;
 
@@ -273,6 +323,11 @@ export default function EventPrintPage() {
                                 className="bg-white border text-slate-700 hover:bg-slate-50 shadow-sm"
                             >
                                 <Calculator className="mr-2 h-4 w-4" /> Edit Costs
+                            </Button>
+                        </RBACWrapper>
+                        <RBACWrapper componentId="btn-event-download-checklist-pdf">
+                            <Button onClick={handleDownloadChecklist} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
+                                <Download className="mr-2 h-4 w-4" /> Print Checklist
                             </Button>
                         </RBACWrapper>
                         <RBACWrapper componentId="btn-event-download-pdf">

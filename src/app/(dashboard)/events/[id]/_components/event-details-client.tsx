@@ -561,7 +561,8 @@ export default function EventDetailsClient({ initialEvent, initialInventory, ini
                                     <span className="text-xs font-medium text-slate-400 uppercase block">Special Items</span>
                                     <div className="flex flex-wrap gap-2">
                                         {((event as any).bhaiSaabIzzan) && <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-none px-3 py-1">Bhai Saab Izzan</Badge>}
-                                        {((event as any).benSaabIzzan) && <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-none px-3 py-1">Ben Saab Izzan</Badge>}
+                                        {((event as any).muraqebeenIzzan) && <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-none px-3 py-1">Muraqebeen Izzan</Badge>}
+                                        {((event as any).benSaabIzzan) && <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 border-none px-3 py-1">Ben Saab Izzan</Badge>}
 
                                         {event.mic && <Badge variant="secondary" className="bg-indigo-50 text-indigo-700">Mic Required</Badge>}
                                         {(event as any).crockeryRequired && <Badge variant="secondary" className="bg-cyan-50 text-cyan-700">Crockery</Badge>}

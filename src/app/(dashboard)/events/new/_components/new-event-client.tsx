@@ -74,6 +74,7 @@ const formSchema = z.object({
     hallCounts: z.record(z.string(), z.number()).optional(), // { "Hall A": 50 }
     sarkariThaalSet: z.coerce.number().min(0),
     bhaiSaabIzzan: z.boolean().default(false),
+    muraqebeenIzzan: z.boolean().default(false),
     benSaabIzzan: z.boolean().default(false),
     extraChilamchiLota: z.coerce.number().min(0),
     tablesAndChairs: z.coerce.number().min(0),
@@ -235,6 +236,7 @@ export default function NewEventPage() {
             extraChilamchiLota: 0,
             tablesAndChairs: 0,
             bhaiSaabIzzan: false,
+            muraqebeenIzzan: false,
             benSaabIzzan: false,
             mic: false,
             crockeryRequired: false,
@@ -982,6 +984,7 @@ export default function NewEventPage() {
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         {[
                                             { name: "bhaiSaabIzzan", label: "Bhai Saab Izzan" },
+                                            { name: "muraqebeenIzzan", label: "Muraqebeen Izzan" },
                                             { name: "benSaabIzzan", label: "Ben Saab Izzan" },
                                             { name: "mic", label: "Microphone" },
                                             { name: "crockeryRequired", label: "Crockery" },

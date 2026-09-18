@@ -54,6 +54,7 @@ const formSchema = z.object({
     thaalCount: z.coerce.number().min(0),
     sarkariThaalSet: z.coerce.number().min(0),
     bhaiSaabIzzan: z.boolean().default(false),
+    muraqebeenIzzan: z.boolean().default(false),
     benSaabIzzan: z.boolean().default(false),
     extraChilamchiLota: z.coerce.number().min(0),
     tablesAndChairs: z.coerce.number().min(0),
@@ -101,6 +102,7 @@ export default function EditEventClient() {
             extraChilamchiLota: 0,
             tablesAndChairs: 0,
             bhaiSaabIzzan: false,
+            muraqebeenIzzan: false,
             benSaabIzzan: false,
             mic: false,
             crockeryRequired: false,
@@ -176,6 +178,7 @@ export default function EditEventClient() {
                     extraChilamchiLota: event.extraChilamchiLota,
                     tablesAndChairs: event.tablesAndChairs,
                     bhaiSaabIzzan: event.bhaiSaabIzzan,
+                    muraqebeenIzzan: event.muraqebeenIzzan,
                     benSaabIzzan: event.benSaabIzzan,
                     mic: event.mic,
                     crockeryRequired: event.crockeryRequired,
@@ -550,6 +553,7 @@ export default function EditEventClient() {
                                 <FormField control={form.control} name="mic" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Mic</FormLabel></FormItem>)} />
                                 <FormField control={form.control} name="crockeryRequired" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Crockery</FormLabel></FormItem>)} />
                                 <FormField control={form.control} name="bhaiSaabIzzan" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Bhai Saab Izzan</FormLabel></FormItem>)} />
+                                <FormField control={form.control} name="muraqebeenIzzan" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Muraqebeen Izzan</FormLabel></FormItem>)} />
                                 <FormField control={form.control} name="benSaabIzzan" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Ben Saab Izzan</FormLabel></FormItem>)} />
                                 <FormField control={form.control} name="thaalForDevri" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Thaal For Devri</FormLabel></FormItem>)} />
                                 <FormField control={form.control} name="paat" render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>PAAT</FormLabel></FormItem>)} />

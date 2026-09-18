@@ -362,6 +362,7 @@ export const generateMiqaatBookingForm = async (
     paymentMode?: string;
     transactionId?: string;
   },
+  isChecklist: boolean = false,
 ) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
@@ -609,6 +610,7 @@ export const generateMiqaatBookingForm = async (
   // -- Additional Items (Inline / Compact) --
   const items = [
     { l: "Bhai Saab Izzan", v: event.bhaiSaabIzzan },
+    { l: "Muraqebeen Izzan", v: event.muraqebeenIzzan },
     { l: "Ben Saab Izzan", v: event.benSaabIzzan },
     { l: "Mic", v: event.mic },
     { l: "Crockery", v: event.crockeryRequired },
@@ -677,7 +679,7 @@ export const generateMiqaatBookingForm = async (
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(LABEL_COLOR[0], LABEL_COLOR[1], LABEL_COLOR[2]);
-  doc.text("LAGAT DETAILS", margin, currentY);
+  doc.text(isChecklist ? "EVENT CHECKLIST" : "LAGAT DETAILS", margin, currentY);
 
   let finalY = currentY;
 
@@ -698,24 +700,26 @@ export const generateMiqaatBookingForm = async (
     );
 
     // Table 1: General Items (Left)
-    const genRows = generalItems.map((i) => [
-      i.label,
-      i.quantity,
-      i.rate,
-      i.total,
-    ]);
+    const genRows = isChecklist
+        ? generalItems.map((i) => [i.label, "       ", ""])
+        : generalItems.map((i) => [
+            i.label,
+            i.quantity,
+            i.rate,
+            i.total,
+          ]);
     // If no general items, add a placeholder or skip? Better to consistency.
 
     const leftTableWidth_Percentage = 0.55;
     // Available width for tables = PageWidth - Margin*2 - DepositBoxWidth - Gaps
-    const depositBoxSpace = 40;
+    const depositBoxSpace = isChecklist ? 0 : 40;
     const availableWidth = pageWidth - margin * 2 - depositBoxSpace;
     const leftWidth = availableWidth * 0.55;
     const rightWidth = availableWidth * 0.43; // Gap is leftover
 
     autoTable(doc, {
       startY: currentY + 2,
-      head: [["General Item", "Qty", "Rate", "Amount"]],
+      head: isChecklist ? [["Item", "Verified", "Comments"]] : [["General Item", "Qty", "Rate", "Amount"]],
       body: genRows,
       theme: "grid",
       styles: {
@@ -725,7 +729,11 @@ export const generateMiqaatBookingForm = async (
         lineWidth: 0.1,
         textColor: [51, 65, 85],
       },
-      columnStyles: {
+      columnStyles: isChecklist ? {
+        0: { fontStyle: "bold", cellWidth: "auto" },
+        1: { cellWidth: 20, halign: "center" },
+        2: { cellWidth: 35, halign: "left" },
+      } : {
         0: { fontStyle: "bold", cellWidth: "auto" },
         1: { cellWidth: 10, halign: "center" },
         2: { cellWidth: 18, halign: "center" },
@@ -737,12 +745,12 @@ export const generateMiqaatBookingForm = async (
     const leftFinalY = (doc as any).lastAutoTable?.finalY;
 
     // Table 2: Hall Items (Right) - Simplified Columns
-    const hallRows = hallItems.map((i) => [i.label, i.total]);
+    const hallRows = isChecklist ? hallItems.map((i) => [i.label, "       ", ""]) : hallItems.map((i) => [i.label, i.total]);
 
     if (hallRows.length > 0) {
       autoTable(doc, {
         startY: currentY + 2,
-        head: [["Hall Charges", "Amount"]],
+        head: isChecklist ? [["Hall Checks", "Verified", "Comments"]] : [["Hall Charges", "Amount"]],
         body: hallRows,
         theme: "grid",
         styles: {
@@ -752,7 +760,11 @@ export const generateMiqaatBookingForm = async (
           lineWidth: 0.1,
           textColor: [51, 65, 85],
         },
-        columnStyles: {
+        columnStyles: isChecklist ? {
+          0: { fontStyle: "bold", cellWidth: "auto" },
+          1: { cellWidth: 20, halign: "center" },
+          2: { cellWidth: 35, halign: "left" },
+        } : {
           0: { fontStyle: "bold", cellWidth: "auto" },
           1: { fontStyle: "bold", cellWidth: 20, halign: "right" },
         },
@@ -766,8 +778,9 @@ export const generateMiqaatBookingForm = async (
     const rightFinalY = (doc as any).lastAutoTable?.finalY || currentY;
     finalY = Math.max(leftFinalY, rightFinalY);
 
-    // Grand Total Row (Full Width spanning tables space)
-    doc.setFillColor(241, 245, 249); // Slate-100 header style
+    if (!isChecklist) {
+      // Grand Total Row (Full Width spanning tables space)
+      doc.setFillColor(241, 245, 249); // Slate-100 header style
     doc.rect(margin, finalY, availableWidth, 8, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
@@ -799,6 +812,7 @@ export const generateMiqaatBookingForm = async (
       doc.setTextColor(30, 41, 59);
       doc.text(paymentText, margin + 25, paymentY);
     }
+    }
   } else {
     // Fallback normal table if no items
     const lagatLabels = [
@@ -813,7 +827,7 @@ export const generateMiqaatBookingForm = async (
 
     autoTable(doc, {
       startY: currentY + 2,
-      head: [["Item", "Qty", "Rate", "Amount"]],
+      head: isChecklist ? [["Item", "Verified", "Comments"]] : [["Item", "Qty", "Rate", "Amount"]],
       body: bodyRows,
       theme: "grid",
       styles: {
@@ -823,14 +837,15 @@ export const generateMiqaatBookingForm = async (
         lineWidth: 0.1,
         textColor: [51, 65, 85],
       },
-      margin: { right: 45 },
+      margin: { right: isChecklist ? margin : 45 },
     });
     finalY = (doc as any).lastAutoTable?.finalY;
   }
 
-  // -- Deposit Box (Manual Draw) --
-  // Drawn to the right
-  const boxWidthForDep = 35;
+  if (!isChecklist) {
+    // -- Deposit Box (Manual Draw) --
+    // Drawn to the right
+    const boxWidthForDep = 35;
   const boxX = pageWidth - 42;
   const boxY = currentY + 2;
   const tableHeight = finalY - boxY;
@@ -857,6 +872,7 @@ export const generateMiqaatBookingForm = async (
     doc.text(pdfData.deposit, boxX + boxWidthForDep / 2, boxY + boxH / 2 + 6, {
       align: "center",
     });
+  }
   }
 
   // -- Footer / Signatures --

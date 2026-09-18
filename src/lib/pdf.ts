@@ -166,6 +166,12 @@ export const eventPdfTemplate = (event: any) => {
                 <span>Bhai Saab Izzan</span>
             </div>
             <div class="checkbox-item">
+                <div class="box ${event.muraqebeenIzzan ? "checked" : ""}">${
+                  event.muraqebeenIzzan ? "✓" : ""
+                }</div>
+                <span>Muraqebeen Izzan</span>
+            </div>
+            <div class="checkbox-item">
                 <div class="box ${event.benSaabIzzan ? "checked" : ""}">${
                   event.benSaabIzzan ? "✓" : ""
                 }</div>
